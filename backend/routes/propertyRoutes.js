@@ -7,5 +7,8 @@ router.get('/:id', propertyController.getPropertyById);
 router.post('/schedule-visit', propertyController.scheduleVisit);
 router.post('/apply', propertyController.applyNow);
 router.post('/contact-owner', propertyController.contactOwner);
+router.patch('/:id/status', propertyController.updatePropertyStatus);
+router.post('/verify-utility-ocr', propertyController.verifyUtilityOcr);
 
 module.exports = router;
+

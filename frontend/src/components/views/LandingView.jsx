@@ -5,7 +5,7 @@ import { useApp } from '../../context/AppContext';
 import { PropertyAPI } from '../../services/api';
 
 export default function LandingView() {
-  const { navigateTo, openPropertyDetails } = useApp();
+  const { navigateTo, openPropertyDetails, startOnboarding } = useApp();
   const [city, setCity] = useState('Ahmedabad');
   const [type, setType] = useState('All Types');
   const [budgetRange, setBudgetRange] = useState('all');
@@ -40,6 +40,23 @@ export default function LandingView() {
           <p className="hero-subtitle">
             Discover verified spaces, compatible roommates, transparent costs and smarter rental management — all in one place.
           </p>
+
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '32px' }}>
+            <button
+              onClick={startOnboarding}
+              className="btn btn-primary"
+              style={{ padding: '14px 32px', fontSize: '1.05rem', fontWeight: 800, borderRadius: '30px', boxShadow: '0 8px 20px rgba(79, 70, 229, 0.35)' }}
+            >
+              🚀 Get Started — Choose Your Role
+            </button>
+            <button
+              onClick={() => navigateTo('discovery')}
+              className="btn btn-secondary"
+              style={{ padding: '14px 24px', fontSize: '1rem', fontWeight: 700, borderRadius: '30px' }}
+            >
+              Browse Nearest Hostels →
+            </button>
+          </div>
 
           {/* Search Component */}
           <form className="hero-search-box" onSubmit={handleHeroSearch}>

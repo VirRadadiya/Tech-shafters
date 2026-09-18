@@ -7,8 +7,20 @@ const AppContext = createContext();
 
 export function AppProvider({ children }) {
   const [currentView, setCurrentView] = useState('landing');
-  const [userRole, setUserRole] = useState('Tenant'); // 'Tenant' | 'Owner'
   const [searchPayload, setSearchPayload] = useState(null);
+
+  // Authentication & Permanent Role State
+  const [currentUser, setCurrentUser] = useState({
+    id: 'usr-tenant-1',
+    fullName: 'Het Darji',
+    email: 'het.darji@nirmauni.ac.in',
+    phone: '+91 98250 12345',
+    role: 'tenant', // strictly permanent
+    avatarUrl: '/avatars/het.jpg',
+    emailVerified: true
+  });
+  const [userRole, setUserRole] = useState('Tenant'); // 'Tenant' | 'Owner'
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
 
   // Modals & Drawers
   const [selectedProperty, setSelectedProperty] = useState(null);
@@ -24,6 +36,17 @@ export function AppProvider({ children }) {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isPayRentModalOpen, setIsPayRentModalOpen] = useState(false);
   const [isMatchCelebrationOpen, setIsMatchCelebrationOpen] = useState(false);
+
+  // New Modals for addme.md specifications
+  const [isRoleSelectModalOpen, setIsRoleSelectModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState('signup'); // 'signup' | 'login'
+  const [selectedPreRole, setSelectedPreRole] = useState('tenant'); // 'tenant' | 'owner'
+  const [isProofVaultModalOpen, setIsProofVaultModalOpen] = useState(false);
+  const [isRoommateContractModalOpen, setIsRoommateContractModalOpen] = useState(false);
+  const [isUtilityVerificationModalOpen, setIsUtilityVerificationModalOpen] = useState(false);
+  const [isStripePaymentModalOpen, setIsStripePaymentModalOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
 
   // Toasts
   const [toasts, setToasts] = useState([]);
@@ -47,6 +70,26 @@ export function AppProvider({ children }) {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
+  // Auth management
+  const loginUser = (user) => {
+    setCurrentUser(user);
+    const normalizedRole = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+    setUserRole(normalizedRole);
+    setIsLoggedIn(true);
+    showToast(`Welcome back, ${user.fullName}! Signed in as verified ${normalizedRole}.`, 'success');
+  };
+
+  const logoutUser = () => {
+    setCurrentUser(null);
+    setIsLoggedIn(false);
+    showToast('Signed out of Nestora account.');
+  };
+
+  // Entry flow: Get Started -> Choose Role
+  const startOnboarding = () => {
+    setIsRoleSelectModalOpen(true);
+  };
+
   // Fetch initial notifications
   const refreshNotifications = async () => {
     try {
@@ -67,8 +110,6 @@ export function AppProvider({ children }) {
   const navigateTo = (viewId, payload = null) => {
     setCurrentView(viewId);
     if (payload) setSearchPayload(payload);
-    if (viewId === 'owner') setUserRole('Owner');
-    if (viewId === 'dashboard') setUserRole('Tenant');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -116,6 +157,11 @@ export function AppProvider({ children }) {
       navigateTo,
       userRole,
       setUserRole,
+      currentUser,
+      isLoggedIn,
+      loginUser,
+      logoutUser,
+      startOnboarding,
       searchPayload,
       setSearchPayload,
 
@@ -148,6 +194,26 @@ export function AppProvider({ children }) {
       setIsProfileModalOpen,
       isPayRentModalOpen,
       setIsPayRentModalOpen,
+
+      // Extended Modals
+      isRoleSelectModalOpen,
+      setIsRoleSelectModalOpen,
+      isAuthModalOpen,
+      setIsAuthModalOpen,
+      authMode,
+      setAuthMode,
+      selectedPreRole,
+      setSelectedPreRole,
+      isProofVaultModalOpen,
+      setIsProofVaultModalOpen,
+      isRoommateContractModalOpen,
+      setIsRoommateContractModalOpen,
+      isUtilityVerificationModalOpen,
+      setIsUtilityVerificationModalOpen,
+      isStripePaymentModalOpen,
+      setIsStripePaymentModalOpen,
+      selectedPayment,
+      setSelectedPayment,
 
       // Saved properties
       savedProperties,

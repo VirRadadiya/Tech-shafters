@@ -47,14 +47,17 @@
         <li><a class="nav-link" data-target="agreement">Agreement</a></li>
         <li><a class="nav-link" data-target="dashboard">Tenant Hub</a></li>
         <li><a class="nav-link" data-target="maintenance">Maintenance</a></li>
+        <li><a class="nav-link" onclick="openProofVaultModal()" title="Move-in/Move-out condition evidence" style="cursor:pointer;">Proof Vault</a></li>
+        <li><a class="nav-link" onclick="openRoommateContractModal()" title="Cohabitation house constitution" style="cursor:pointer;">House Constitution</a></li>
       </ul>
 
       <!-- Action Items & User Profile -->
       <div class="nav-actions">
-        <!-- Role Toggle (Tenant / Owner) -->
-        <div class="role-badge-toggle" title="Switch between Tenant and Landlord mode">
-          <button class="role-btn active" id="role-btn-tenant">Tenant</button>
-          <button class="role-btn" id="role-btn-owner">Owner</button>
+        <!-- Permanent Role Badge (addme.md requirement: permanent role, no arbitrary switching) -->
+        <div class="role-badge-toggle" id="nav-role-badge-container" style="display:flex; align-items:center; gap:6px; background:#EEF2FF; border:1px solid var(--primary-200); padding:4px 10px; border-radius:20px;" title="Permanent role locked via Supabase Auth">
+          <span id="nav-role-label" style="font-size:0.78rem; font-weight:800; color:var(--primary);">🏠 Tenant</span>
+          <span style="font-size:0.65rem; background:#FFFFFF; padding:1px 5px; border-radius:4px; font-weight:700; color:var(--text-muted); border:1px solid var(--border-subtle);">🔒 Fixed</span>
+          <button class="btn btn-ghost btn-sm" onclick="openRoleSelectModal()" style="font-size:0.7rem; padding:2px 6px; color:var(--primary); text-decoration:underline;">Switch</button>
         </div>
 
         <!-- Notification Bell with Dynamic Counter -->
@@ -69,7 +72,7 @@
         <!-- User Quick Profile Pill -->
         <div class="user-nav-profile" onclick="openProfileModal()" title="View account & verification">
           <img src="—Pngtree—man avatar image for profile_13001882.png" alt="Het Darji" class="user-avatar" />
-          <span class="user-nav-name">Het Darji</span>
+          <span class="user-nav-name" id="user-nav-display-name">Het Darji</span>
           <span class="badge badge-verified" style="padding: 2px 6px; font-size: 0.7rem;">✓ Verified</span>
         </div>
       </div>
@@ -99,6 +102,16 @@
           <p class="hero-subtitle">
             Discover verified spaces, compatible roommates, transparent costs and smarter rental management — all in one place.
           </p>
+
+          <!-- Role Selection / Getting Started Action Buttons -->
+          <div style="display:flex; gap:12px; margin-top:20px; margin-bottom:28px; flex-wrap:wrap;">
+            <button class="btn btn-primary btn-lg" onclick="openRoleSelectModal()" style="border-radius:30px; font-weight:800; box-shadow:0 8px 20px rgba(79, 70, 229, 0.35); padding:14px 30px;">
+              🚀 Get Started — Choose Your Role
+            </button>
+            <button class="btn btn-secondary btn-lg" onclick="navigateTo('discovery')" style="border-radius:30px; font-weight:700; padding:14px 24px;">
+              Browse Nearest Hostels →
+            </button>
+          </div>
 
           <!-- Large Search Component -->
           <div class="hero-search-box">
@@ -314,6 +327,31 @@
          ---------------------------------------------------------------------- -->
     <section class="view-panel" id="view-discovery">
       <div class="container discovery-layout">
+        <!-- Campus & Short-Term Stay Filter Strip (addme.md Specification) -->
+        <div style="background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:12px 18px; margin-bottom:14px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; box-shadow:var(--shadow-sm);">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:0.85rem; font-weight:800; color:var(--primary);">🎓 Nearest Campus:</span>
+            <select id="discovery-campus-select" class="val-select" style="width:auto; padding:6px 12px; font-size:0.85rem; font-weight:700; color:var(--primary-hover);" onchange="handleCampusFilterChange(this.value)">
+              <option value="all">All Locations (Citywide)</option>
+              <option value="Nirma University">Nirma University (SG Highway)</option>
+              <option value="CEPT">CEPT University (Navrangpura)</option>
+              <option value="PDPU">PDPU / PDEU (Gandhinagar)</option>
+              <option value="IIM Ahmedabad">IIM Ahmedabad (Vastrapur)</option>
+              <option value="GIFT City">GIFT City IT Corridor</option>
+            </select>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:0.85rem; font-weight:700; color:var(--text-secondary);">⏳ Short-Term Window:</span>
+            <div style="display:inline-flex; gap:6px; flex-wrap:wrap;">
+              <button class="filter-chip active" id="pill-dur-all" onclick="filterByDuration('all', this)">All Durations</button>
+              <button class="filter-chip" id="pill-dur-2" onclick="filterByDuration('2', this)">2 Months Stay</button>
+              <button class="filter-chip" id="pill-dur-3" onclick="filterByDuration('3', this)">3 Months Stay</button>
+              <button class="filter-chip" id="pill-dur-4" onclick="filterByDuration('4', this)">4 Months Stay</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Filter & Sorting Bar -->
         <div class="discovery-filter-bar">
           <div class="filter-chips-row">
@@ -330,6 +368,7 @@
             <span>Sort by:</span>
             <select class="sort-select" onchange="handleSortChange(this.value)">
               <option value="recommended">Recommended (Transparency)</option>
+              <option value="true-cost">True Living Cost: Low to High</option>
               <option value="lowest-rent">Lowest Rent (₹)</option>
               <option value="lowest-cost">Lowest Total Living Cost</option>
               <option value="rating">Highest Rating</option>
@@ -434,7 +473,9 @@
               <span>Palm Grove Luxury Living — Flat 402, SG Highway</span>
             </div>
           </div>
-          <div style="display:flex; gap:10px;">
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-secondary btn-sm" onclick="openProofVaultModal()">📸 Proof Vault</button>
+            <button class="btn btn-secondary btn-sm" onclick="openRoommateContractModal()">📜 House Constitution</button>
             <button class="btn btn-secondary btn-sm" onclick="navigateTo('maintenance')">Report Issue</button>
             <button class="btn btn-primary btn-sm" onclick="openSplitExpenseModal()">+ Split Expense</button>
           </div>
@@ -463,9 +504,9 @@
           <div class="kpi-card kpi-primary-due">
             <div class="kpi-label">Next Payment</div>
             <div class="kpi-number">₹18,000</div>
-            <div class="kpi-subtext">Due in 5 days (Oct 5)</div>
-            <button class="btn btn-sm btn-secondary" style="margin-top:10px; width:100%;" onclick="triggerPayRentModal()">
-              Pay via UPI / Card →
+            <div class="kpi-subtext">Due in 5 days (Oct 5) • Zero Brokerage</div>
+            <button class="btn btn-sm btn-secondary" style="margin-top:10px; width:100%; font-weight:800;" onclick="openStripePaymentModal()">
+              Pay with Stripe Escrow →
             </button>
           </div>
         </div>
@@ -786,9 +827,17 @@
                 <h2>Host Portfolio Overview</h2>
                 <p style="color:var(--text-secondary); font-size:0.9rem;">Manage units across Ahmedabad and Gandhinagar with automated rent collection.</p>
               </div>
-              <button class="btn btn-primary" onclick="openAddPropertyModal()">
-                + Add Property
-              </button>
+              <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="btn btn-secondary" onclick="openUtilityVerificationModal()">
+                  📄 Utility OCR Verify
+                </button>
+                <button class="btn btn-secondary" onclick="openProofVaultModal()">
+                  📦 Proof Vault Handover
+                </button>
+                <button class="btn btn-primary" onclick="openAddPropertyModal()">
+                  + Add Property
+                </button>
+              </div>
             </div>
 
             <!-- KPI Cards -->
@@ -821,20 +870,20 @@
             <!-- Tenant Management Table -->
             <div class="owner-table-card">
               <div style="padding:18px 20px; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="font-size:1.15rem; font-weight:800;">Tenant & Lease Status</h3>
+                <h3 style="font-size:1.15rem; font-weight:800;">Managed Living Units &amp; Active/Found Status</h3>
                 <span class="badge badge-verified">Direct Escrow Active</span>
               </div>
               <div class="table-responsive">
                 <table class="nestora-table">
                   <thead>
                     <tr>
-                      <th>Property</th>
+                      <th>Property &amp; Unit</th>
                       <th>Tenant</th>
-                      <th>Monthly Rent</th>
+                      <th>Rent / Mo</th>
+                      <th>Listing Status (Active / Found)</th>
                       <th>Payment Status</th>
-                      <th>Maintenance</th>
-                      <th>Lease Expiry</th>
-                      <th>Action</th>
+                      <th>Verification</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody id="owner-tenant-table-body">
@@ -1208,6 +1257,501 @@
       <span>Profile</span>
     </button>
   </nav>
+
+  <!-- ==========================================================================
+       MODAL 7: ROLE SELECTION MODAL (addme.md Specification)
+       ========================================================================== -->
+  <div class="details-modal-backdrop" id="role-select-modal">
+    <div class="details-modal-container" style="max-width: 560px;">
+      <button class="modal-close-btn" onclick="closeRoleSelectModal()">✕</button>
+      <div style="padding: 28px;">
+        <span style="font-size: 0.8rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em;">
+          Permanent Account Setup
+        </span>
+        <h2 style="font-size: 1.6rem; font-weight: 800; color: var(--text-primary); margin: 6px 0 8px 0;">
+          How will you use Nestora?
+        </h2>
+        <p style="color: var(--text-secondary); font-size: 0.92rem; margin-bottom: 24px;">
+          Select your primary role. This selection is <strong>permanent</strong> and customizes your verified identity and dashboard features.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px;">
+          <!-- Tenant Option Card -->
+          <div
+            id="role-card-tenant"
+            onclick="selectRoleOption('tenant')"
+            style="padding: 22px 18px; border-radius: var(--radius-md); border: 2.5px solid var(--primary); background: #EEF2FF; cursor: pointer; transition: all 0.2s ease; position: relative;"
+          >
+            <span style="font-size: 2.4rem; display: block; margin-bottom: 8px;">🏠</span>
+            <h3 style="font-size: 1.1rem; font-weight: 800; margin: 0 0 6px 0;">I'm a Tenant</h3>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0; line-height: 1.45;">
+              Search short-term student spaces, roommate matching, Proof Vault condition handovers, and Stripe payments.
+            </p>
+          </div>
+
+          <!-- Owner Option Card -->
+          <div
+            id="role-card-owner"
+            onclick="selectRoleOption('owner')"
+            style="padding: 22px 18px; border-radius: var(--radius-md); border: 2px solid var(--border-medium); background: var(--bg-surface); cursor: pointer; transition: all 0.2s ease; position: relative;"
+          >
+            <span style="font-size: 2.4rem; display: block; margin-bottom: 8px;">🏢</span>
+            <h3 style="font-size: 1.1rem; font-weight: 800; margin: 0 0 6px 0;">I'm an Owner</h3>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0; line-height: 1.45;">
+              List properties, toggle Active/Found availability, verify utility bills via OCR, and collect rent.
+            </p>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button class="btn btn-secondary" onclick="closeRoleSelectModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="proceedFromRoleSelect()" style="padding: 10px 24px;">Continue →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 8: PERMANENT AUTH MODAL (SIGNUP & LOGIN)
+       ========================================================================== -->
+  <div class="details-modal-backdrop" id="auth-modal">
+    <div class="details-modal-container" style="max-width: 480px;">
+      <button class="modal-close-btn" onclick="closeAuthModal()">✕</button>
+      <div style="padding: 28px;">
+        <span id="auth-modal-eyebrow" style="font-size: 0.8rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">
+          Step 2: Permanent Registration
+        </span>
+        <h2 id="auth-modal-title" style="font-size: 1.55rem; font-weight: 800; color: var(--text-primary); margin: 6px 0 8px 0;">
+          Create your Nestora account
+        </h2>
+        <p id="auth-modal-subtitle" style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">
+          Find your space. Find your people. Live smarter.
+        </p>
+
+        <!-- Read-Only Permanent Role Context -->
+        <div style="background: #EEF2FF; border: 1.5px solid var(--primary-light); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <span style="font-size: 0.72rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">Assigned Role:</span>
+            <div id="auth-assigned-role-text" style="font-size: 0.95rem; font-weight: 800; color: var(--text-primary);">
+              🏠 Student / Youth Tenant
+            </div>
+          </div>
+          <span style="font-size: 0.7rem; background: white; padding: 2px 6px; border-radius: 4px; font-weight: 700; color: var(--text-muted); border: 1px solid var(--border-subtle);">
+            🔒 Read-Only
+          </span>
+        </div>
+
+        <!-- Auth Form -->
+        <form id="nestora-auth-form" onsubmit="handleAuthSubmit(event)">
+          <div id="auth-fullname-group" class="val-form-group" style="margin-bottom: 12px;">
+            <label>Full Legal Name</label>
+            <input type="text" class="val-input" id="auth-fullname-input" placeholder="e.g. Het Darji" required />
+          </div>
+
+          <div class="val-form-group" style="margin-bottom: 12px;">
+            <label>Email Address</label>
+            <input type="email" class="val-input" id="auth-email-input" placeholder="e.g. het.darji@nirmauni.ac.in" required />
+          </div>
+
+          <div id="auth-phone-group" class="val-form-group" style="margin-bottom: 12px;">
+            <label>Phone Number</label>
+            <input type="tel" class="val-input" id="auth-phone-input" placeholder="+91 98250 XXXXX" />
+          </div>
+
+          <div class="val-form-group" style="margin-bottom: 12px;">
+            <label>Password</label>
+            <input type="password" class="val-input" id="auth-password-input" placeholder="Minimum 6 characters" required />
+          </div>
+
+          <div id="auth-confirm-group" class="val-form-group" style="margin-bottom: 12px;">
+            <label>Confirm Password</label>
+            <input type="password" class="val-input" id="auth-confirm-input" placeholder="Re-enter password" />
+          </div>
+
+          <div id="auth-terms-group" style="display: flex; align-items: flex-start; gap: 8px; margin: 10px 0;">
+            <input type="checkbox" id="auth-terms-checkbox" required style="margin-top: 3px;" />
+            <label for="auth-terms-checkbox" style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4;">
+              I agree to Nestora's <strong>Terms of Service</strong> &amp; <strong>Zero Brokerage Policy</strong>.
+            </label>
+          </div>
+
+          <button type="submit" id="auth-submit-btn" class="btn btn-primary" style="width: 100%; padding: 12px; margin-top: 8px; font-weight: 800;">
+            Create Account
+          </button>
+
+          <div style="text-align: center; margin-top: 14px; font-size: 0.85rem; color: var(--text-muted);">
+            <span id="auth-toggle-prompt">Already have an account?</span>
+            <a href="javascript:void(0)" onclick="toggleAuthMode()" id="auth-toggle-link" style="color: var(--primary); font-weight: 700; margin-left: 4px;">
+              Sign In
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 9: PROOF VAULT MODAL (MOVE-IN / MOVE-OUT HANDOVER)
+       ========================================================================== -->
+  <div class="details-modal-backdrop" id="proof-vault-modal">
+    <div class="details-modal-container" style="max-width: 780px; max-height: 90vh; overflow-y: auto;">
+      <button class="modal-close-btn" onclick="closeProofVaultModal()">✕</button>
+      <div style="padding: 28px;">
+        <span style="font-size: 0.8rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">
+          Immutable Evidence Ledger
+        </span>
+        <h2 style="font-size: 1.6rem; font-weight: 800; color: var(--text-primary); margin: 6px 0 6px 0;">
+          Move-In / Move-Out Proof Vault
+        </h2>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 18px;">
+          Document room condition, appliances, and electricity/water meter readings with tamper-proof timestamps to protect 100% of your security deposit.
+        </p>
+
+        <!-- Tabs -->
+        <div style="display: flex; gap: 8px; border-bottom: 1.5px solid var(--border-subtle); margin-bottom: 18px;">
+          <button id="pv-tab-movein" onclick="switchProofVaultTab('move_in')" class="btn btn-sm btn-ghost" style="font-weight: 800; border-bottom: 3px solid var(--primary); border-radius: 0; color: var(--primary);">
+            🔑 Move-In Inspection (Handover)
+          </button>
+          <button id="pv-tab-moveout" onclick="switchProofVaultTab('move_out')" class="btn btn-sm btn-ghost" style="font-weight: 600; border-radius: 0; color: var(--text-muted);">
+            📦 Move-Out Inspection (Exit Refund)
+          </button>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+          <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 700;" id="pv-item-counter">
+            4 Condition Items Verified
+          </span>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-sm btn-secondary" onclick="showToast('Proof Vault Condition Certificate PDF exported!', 'success')">
+              📄 Export Vault PDF
+            </button>
+            <button class="btn btn-sm btn-primary" onclick="toggleAddProofItemForm()">
+              + Add Item / Meter
+            </button>
+          </div>
+        </div>
+
+        <!-- Add Form -->
+        <form id="pv-add-form" onsubmit="submitNewProofItem(event)" style="display: none; background: var(--bg-surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 18px; margin-bottom: 18px;">
+          <h4 style="margin: 0 0 12px 0; font-size: 0.95rem; font-weight: 800;">Add Room Condition or Meter Evidence</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div>
+              <label style="font-size: 0.8rem; font-weight: 700; display: block; margin-bottom: 4px;">Room / Area</label>
+              <select id="pv-form-room" class="val-select" style="width: 100%;">
+                <option value="Living Room">Living Room</option>
+                <option value="Master Bedroom">Master Bedroom</option>
+                <option value="Kitchen">Kitchen</option>
+                <option value="Bathroom">Bathroom</option>
+                <option value="Utility Balcony">Utility Balcony (Meters)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 0.8rem; font-weight: 700; display: block; margin-bottom: 4px;">Item / Appliance Name</label>
+              <input type="text" id="pv-form-item" class="val-input" placeholder="e.g. Geyser 15L or Torrent Meter" required />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div>
+              <label style="font-size: 0.8rem; font-weight: 700; display: block; margin-bottom: 4px;">Condition</label>
+              <select id="pv-form-condition" class="val-select" style="width: 100%;">
+                <option value="Brand New">Brand New</option>
+                <option value="Excellent">Excellent</option>
+                <option value="Good (Minor Pre-existing wear)" selected>Good (Minor Pre-existing wear)</option>
+                <option value="Defective / Requires Repair">Defective / Requires Repair</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 0.8rem; font-weight: 700; display: block; margin-bottom: 4px;">Meter Reading (If applicable)</label>
+              <input type="text" id="pv-form-meter" class="val-input" placeholder="e.g. 014820 kWh" />
+            </div>
+          </div>
+
+          <div style="margin-bottom: 14px;">
+            <label style="font-size: 0.8rem; font-weight: 700; display: block; margin-bottom: 4px;">Handover Notes</label>
+            <input type="text" id="pv-form-notes" class="val-input" placeholder="Observed with landlord during key handover..." />
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button type="button" class="btn btn-sm btn-secondary" onclick="toggleAddProofItemForm()">Cancel</button>
+            <button type="submit" class="btn btn-sm btn-primary">Lock into Vault</button>
+          </div>
+        </form>
+
+        <!-- Items List -->
+        <div id="pv-items-list" style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 10: ROOMMATE HOUSE CONSTITUTION MODAL (addme.md Specification)
+       ========================================================================== -->
+  <div class="details-modal-backdrop" id="roommate-contract-modal">
+    <div class="details-modal-container" style="max-width: 820px; max-height: 90vh; overflow-y: auto;">
+      <button class="modal-close-btn" onclick="closeRoommateContractModal()">✕</button>
+      <div style="padding: 28px;">
+        <span style="font-size: 0.8rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">
+          Cohabitation Legal Framework
+        </span>
+        <h2 style="font-size: 1.6rem; font-weight: 800; color: var(--text-primary); margin: 6px 0 6px 0;">
+          Roommate Contract &amp; House Constitution
+        </h2>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">
+          Draft a transparent, mutual "House Constitution" to prevent flatmate misunderstandings over utility splits, chore rotations, quiet study hours, and overnight visitors.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px;">
+          <!-- Form -->
+          <form onsubmit="handleGenerateRoommateConstitution(event)" style="display: flex; flex-direction: column; gap: 12px;">
+            <div>
+              <label style="font-size: 0.82rem; font-weight: 700; display: block; margin-bottom: 4px;">Roommate Name / Co-Signer</label>
+              <input type="text" id="rc-form-name" class="val-input" value="Aarav Sharma" required />
+            </div>
+
+            <div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <label id="rc-split-label" style="font-size: 0.82rem; font-weight: 700;">Rent Split: You (50%) | Roommate (50%)</label>
+              </div>
+              <input type="range" id="rc-form-split" min="30" max="70" value="50" oninput="updateRentSplitLabel(this.value)" style="width: 100%; accent-color: var(--primary);" />
+            </div>
+
+            <div>
+              <label style="font-size: 0.82rem; font-weight: 700; display: block; margin-bottom: 4px;">Quiet Study &amp; Sleeping Hours</label>
+              <select id="rc-form-quiet" class="val-select" style="width: 100%;">
+                <option value="11:00 PM – 7:00 AM (Weekdays)">11:00 PM – 7:00 AM (Weekdays)</option>
+                <option value="10:00 PM – 6:00 AM (Strict Study Zone)">10:00 PM – 6:00 AM (Strict Study Zone)</option>
+                <option value="12:00 AM – 8:00 AM (Night Owl Friendly)">12:00 AM – 8:00 AM (Night Owl Friendly)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="font-size: 0.82rem; font-weight: 700; display: block; margin-bottom: 4px;">Chores &amp; Cleaning Rotation</label>
+              <input type="text" id="rc-form-chores" class="val-input" value="Alternating weekly kitchen and washroom cleaning" />
+            </div>
+
+            <div>
+              <label style="font-size: 0.82rem; font-weight: 700; display: block; margin-bottom: 4px;">Overnight Guest Policy</label>
+              <input type="text" id="rc-form-guests" class="val-input" value="Allowed with 24h advance WhatsApp notification" />
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="padding: 12px; margin-top: 6px; font-weight: 800;">
+              Generate &amp; Request Countersignatures →
+            </button>
+          </form>
+
+          <!-- Live Document Preview -->
+          <div class="constitution-preview-paper" id="rc-preview-box">
+            <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; margin-bottom: 12px; font-weight: 800; text-align: center;">
+              HOUSE CONSTITUTION v1.0 (PROVISIONAL)
+            </div>
+            <p><strong>Property:</strong> Sunrise Harmony Heights (Flat 402)</p>
+            <p><strong>Parties:</strong> Het Darji &amp; <span id="rc-prev-name">Aarav Sharma</span></p>
+            <p><strong>1. Rent Allocation:</strong> <span id="rc-prev-rent">₹9,000 (50%) / ₹9,000 (50%)</span> due on 5th of each month.</p>
+            <p><strong>2. Utility Protocol:</strong> Torrent Power &amp; Wi-Fi split 50/50 via Nestora.</p>
+            <p><strong>3. Cleaning Roster:</strong> <span id="rc-prev-chores">Alternating weekly cleaning.</span></p>
+            <p><strong>4. Study &amp; Quiet Hours:</strong> <span id="rc-prev-quiet">11:00 PM – 7:00 AM.</span></p>
+            <p><strong>5. Visitors &amp; Guests:</strong> <span id="rc-prev-guests">Allowed with 24h WhatsApp notification.</span></p>
+
+            <div style="border-top: 1px dashed var(--border-subtle); padding-top: 12px; margin-top: 16px; display: flex; justify-content: space-between;">
+              <div>
+                <span style="color: var(--accent-emerald-dark); font-weight: 800;">✓ Het Darji (Signed)</span>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">Aadhaar Stamped</div>
+              </div>
+              <div>
+                <span id="rc-prev-status" style="color: var(--accent-amber); font-weight: 800;">⏳ Aarav Sharma</span>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">Invite Pending</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 11: UTILITY OCR VERIFICATION MODAL (addme.md Specification)
+       ========================================================================== -->
+  <div class="details-modal-backdrop" id="utility-verification-modal">
+    <div class="details-modal-container" style="max-width: 620px;">
+      <button class="modal-close-btn" onclick="closeUtilityVerificationModal()">✕</button>
+      <div style="padding: 28px;">
+        <span style="font-size: 0.8rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">
+          Owner Trust &amp; Fraud Prevention
+        </span>
+        <h2 style="font-size: 1.55rem; font-weight: 800; color: var(--text-primary); margin: 6px 0 6px 0;">
+          Utility &amp; Property Document OCR Verification
+        </h2>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">
+          To protect students from fake or duplicate listings, upload a recent utility bill or municipal property tax receipt. Our automated OCR verifies owner identity and service address.
+        </p>
+
+        <div id="ocr-upload-step">
+          <div class="val-form-group" style="margin-bottom: 14px;">
+            <label>Document Type</label>
+            <select id="ocr-doc-type" class="val-select" style="width: 100%;">
+              <option value="Torrent Power Electricity Bill">Torrent Power Electricity Bill (Recent 60 Days)</option>
+              <option value="AMC Property Tax Receipt">Ahmedabad Municipal Corporation (AMC) Tax Receipt</option>
+              <option value="Adani Piped Gas Bill">Adani Piped Natural Gas Bill</option>
+              <option value="Registered Sale Deed">Registered Property Sale Deed / Allotment Letter</option>
+            </select>
+          </div>
+
+          <div
+            onclick="triggerOcrFileSelect()"
+            style="border: 2px dashed var(--primary); background: var(--bg-surface-secondary); border-radius: var(--radius-md); padding: 30px; text-align: center; cursor: pointer; margin-bottom: 16px;"
+          >
+            <input type="file" id="ocr-file-input" style="display: none;" onchange="handleOcrFileSelected(this)" accept=".pdf,.png,.jpg,.jpeg" />
+            <span style="font-size: 2.5rem; display: block; margin-bottom: 6px;">📄</span>
+            <div id="ocr-file-label" style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary);">
+              Click to browse or drop electricity bill PDF
+            </div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">
+              Supports PDF, JPG, PNG up to 10MB (Kept strictly private &amp; encrypted)
+            </div>
+          </div>
+
+          <button id="ocr-run-btn" class="btn btn-primary" onclick="runDocumentOcrVerification()" style="width: 100%; padding: 12px; font-weight: 800;">
+            Extract Fields &amp; Verify Listing →
+          </button>
+        </div>
+
+        <div id="ocr-result-step" style="display: none;">
+          <div style="background: #ECFDF5; border: 1.5px solid #A7F3D0; border-radius: var(--radius-md); padding: 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+            <span style="font-size: 2rem;">🎉</span>
+            <div>
+              <h4 style="margin: 0; color: #065F46; font-size: 1.05rem; font-weight: 800;">
+                Listing Verified via OCR (96.8% Confidence)
+              </h4>
+              <p style="margin: 2px 0 0 0; font-size: 0.85rem; color: #047857;">
+                Service address &amp; consumer record matches municipal property database.
+              </p>
+            </div>
+          </div>
+
+          <div style="border: 1.5px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px; background: var(--bg-surface); margin-bottom: 18px;">
+            <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; font-weight: 800;">OCR Extracted Metadata</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.82rem;">
+              <div><strong>Consumer No:</strong> TP-9982410-AHM</div>
+              <div><strong>Billed Owner:</strong> Rajesh Patel</div>
+              <div style="grid-column: span 2;"><strong>Service Address:</strong> Flat 402, Sunrise Harmony Heights, SG Highway, Ahmedabad</div>
+              <div><strong>Billing Cycle:</strong> August 2026</div>
+              <div><strong>Status:</strong> <span style="color: var(--accent-emerald-dark); font-weight: 800;">VERIFIED ✓</span></div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" onclick="closeUtilityVerificationModal()" style="width: 100%; padding: 12px;">
+            Done — Return to Host Hub
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 12: STRIPE SECURE ESCROW PAYMENT MODAL
+       ========================================================================== -->
+  <div class="details-modal-backdrop" id="stripe-payment-modal">
+    <div class="details-modal-container" style="max-width: 480px;">
+      <button class="modal-close-btn" onclick="closeStripePaymentModal()">✕</button>
+      <div style="padding: 28px;">
+        <span style="font-size: 0.8rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">
+          Stripe Secure Escrow
+        </span>
+        <h2 style="font-size: 1.55rem; font-weight: 800; color: var(--text-primary); margin: 6px 0 6px 0;">
+          Rent &amp; Tenancy Payment
+        </h2>
+        <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 18px;">
+          Due Date: <strong>Oct 5, 2026</strong> • Landlord: <strong>Rajesh Patel</strong>
+        </p>
+
+        <div id="stripe-checkout-step">
+          <!-- Itemized Breakdown -->
+          <div style="background: var(--bg-surface-secondary); border: 1.5px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 8px;">
+              <span>Base Monthly Rent</span>
+              <span>₹16,500</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 8px;">
+              <span>Society Maintenance &amp; Elevators</span>
+              <span>₹1,200</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 8px;">
+              <span>Water &amp; Sewage Cess</span>
+              <span>₹300</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 12px;">
+              <span>Nestora Platform Fee</span>
+              <span style="color: var(--accent-emerald-dark); font-weight: 700;">₹0 (Zero Brokerage)</span>
+            </div>
+            <div style="border-top: 1.5px solid var(--border-medium); padding-top: 10px; display: flex; justify-content: space-between; font-weight: 800; font-size: 1.1rem;">
+              <span>Total Due</span>
+              <span style="color: var(--primary);">₹18,000</span>
+            </div>
+          </div>
+
+          <button id="stripe-pay-btn" class="btn btn-primary" onclick="executeStripeCheckout()" style="width: 100%; padding: 14px; font-weight: 800; font-size: 1rem; margin-bottom: 10px;">
+            Pay ₹18,000 with Stripe Checkout →
+          </button>
+          <div style="text-align: center; font-size: 0.75rem; color: var(--text-muted);">
+            🔒 256-bit SSL encrypted • Escrow protected • Credit/Debit Cards, UPI, NetBanking
+          </div>
+        </div>
+
+        <div id="stripe-success-step" style="display: none; text-align: center; padding: 16px 0;">
+          <span style="font-size: 3.5rem;">✅</span>
+          <h3 style="font-size: 1.35rem; font-weight: 800; margin: 12px 0 6px 0;">Payment Confirmed!</h3>
+          <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 20px;">
+            ₹18,000 received. Landlord Rajesh Patel notified in real time.
+          </p>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-secondary" style="flex: 1;" onclick="showToast('GST Rent Receipt PDF downloaded!', 'success')">
+              📥 Download Receipt
+            </button>
+            <button class="btn btn-primary" style="flex: 1;" onclick="closeStripePaymentModal()">
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       WHATSAPP / IN-APP 24/7 MAINTENANCE RELAY BOT WIDGET
+       ========================================================================== -->
+  <button class="nestora-bot-launcher" id="nestora-bot-launcher" onclick="toggleMaintenanceChat()">
+    <span style="font-size: 1.3rem;">💬</span>
+    <span>Maintenance Bot (24/7)</span>
+  </button>
+
+  <div class="nestora-bot-window" id="nestora-bot-window" style="display: none;">
+    <div class="nestora-bot-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 9px; height: 9px; border-radius: 50%; background: #25D366;"></div>
+        <div>
+          <h4 style="margin: 0; font-size: 0.95rem; font-weight: 800; color: white;">Nestora Relay Bot</h4>
+          <div style="font-size: 0.7rem; opacity: 0.85;">WhatsApp &amp; In-App Sync Active</div>
+        </div>
+      </div>
+      <button onclick="toggleMaintenanceChat(false)" style="background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer;">✕</button>
+    </div>
+
+    <div class="nestora-bot-messages" id="nestora-bot-messages-box">
+      <div class="nestora-msg-bubble nestora-msg-bot">
+        👋 Hi Het! I am the Nestora Maintenance Relay Bot. Type any repair issue (e.g. "geyser leaking", "ac not cooling") to dispatch a technician immediately.
+      </div>
+    </div>
+
+    <form onsubmit="handleSendMaintenanceChat(event)" style="padding: 10px; background: #F0F2F5; display: flex; gap: 8px; align-items: center;">
+      <input type="text" id="nestora-bot-input" placeholder="Type issue (e.g. geyser leaking)..." style="flex: 1; padding: 10px 14px; border: 1px solid var(--border-medium); border-radius: 24px; font-size: 0.85rem; outline: none;" />
+      <button type="submit" style="background: #128C7E; color: white; border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.95rem;">
+        ➤
+      </button>
+    </form>
+  </div>
 
   <!-- JavaScript Modules -->
   <script src="js/data.js"></script>

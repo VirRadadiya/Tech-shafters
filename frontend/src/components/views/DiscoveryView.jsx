@@ -14,6 +14,8 @@ export default function DiscoveryView() {
   } = useApp();
 
   const [city, setCity] = useState(searchPayload?.city || 'Ahmedabad');
+  const [selectedCampus, setSelectedCampus] = useState('all');
+  const [selectedDuration, setSelectedDuration] = useState('all'); // 'all', '2', '3', '4', '6'
   const [selectedType, setSelectedType] = useState(searchPayload?.type || 'All Types');
   const [budgetRange, setBudgetRange] = useState(searchPayload?.budgetRange || 'all');
   const [furnishedOnly, setFurnishedOnly] = useState(false);
@@ -38,6 +40,8 @@ export default function DiscoveryView() {
     setLoading(true);
     PropertyAPI.getProperties({
       city,
+      campus: selectedCampus,
+      duration: selectedDuration,
       type: selectedType,
       budgetRange,
       furnished: furnishedOnly,
@@ -49,7 +53,7 @@ export default function DiscoveryView() {
       }
       setLoading(false);
     });
-  }, [city, selectedType, budgetRange, furnishedOnly, roommatesAllowedOnly, sortBy]);
+  }, [city, selectedCampus, selectedDuration, selectedType, budgetRange, furnishedOnly, roommatesAllowedOnly, sortBy]);
 
   const chipOptions = [
     'All Types',
@@ -62,6 +66,8 @@ export default function DiscoveryView() {
 
   const resetFilters = () => {
     setCity('Ahmedabad');
+    setSelectedCampus('all');
+    setSelectedDuration('all');
     setSelectedType('All Types');
     setBudgetRange('all');
     setFurnishedOnly(false);
@@ -76,9 +82,27 @@ export default function DiscoveryView() {
       <div className="discovery-filter-bar">
         <div className="container">
           <div className="filter-controls-row">
+            {/* Campus / University Dropdown (Nearest Hostels) */}
+            <div className="filter-control-item">
+              <label className="filter-mini-label">🎓 Nearest Campus / University</label>
+              <select
+                className="filter-select-input"
+                value={selectedCampus}
+                onChange={(e) => setSelectedCampus(e.target.value)}
+                style={{ fontWeight: 700, color: 'var(--primary-700)' }}
+              >
+                <option value="all">All Locations (Citywide)</option>
+                <option value="Nirma University">Nirma University (SG Highway)</option>
+                <option value="CEPT">CEPT University (Navrangpura)</option>
+                <option value="PDPU">PDPU / PDEU (Gandhinagar)</option>
+                <option value="IIM Ahmedabad">IIM Ahmedabad (Vastrapur)</option>
+                <option value="GIFT City">GIFT City IT Corridor</option>
+              </select>
+            </div>
+
             {/* City Dropdown */}
             <div className="filter-control-item">
-              <label className="filter-mini-label">City / Hub</label>
+              <label className="filter-mini-label">City / Region</label>
               <select
                 className="filter-select-input"
                 value={city}
@@ -136,6 +160,38 @@ export default function DiscoveryView() {
             </button>
           </div>
 
+          {/* Short-Term Stays 2–4 Month Duration Pills */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--slate-600)', textTransform: 'uppercase' }}>
+              ⏳ Short-Term Window:
+            </span>
+            {[
+              { label: 'All Durations', val: 'all' },
+              { label: '2 Months Stay', val: '2' },
+              { label: '3 Months Stay', val: '3' },
+              { label: '4 Months Stay', val: '4' },
+              { label: 'Flexible (5+ Mos)', val: '6' }
+            ].map(pill => (
+              <button
+                key={pill.val}
+                onClick={() => setSelectedDuration(pill.val)}
+                style={{
+                  border: selectedDuration === pill.val ? '1.5px solid var(--primary-600)' : '1px solid var(--slate-300)',
+                  background: selectedDuration === pill.val ? '#EEF2FF' : 'var(--white)',
+                  color: selectedDuration === pill.val ? 'var(--primary-700)' : 'var(--slate-700)',
+                  fontWeight: selectedDuration === pill.val ? 800 : 500,
+                  fontSize: '0.8rem',
+                  padding: '4px 12px',
+                  borderRadius: '16px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {pill.label}
+              </button>
+            ))}
+          </div>
+
           {/* Quick Category Chips */}
           <div className="filter-chips-scroll">
             {chipOptions.map(chip => (
@@ -173,8 +229,9 @@ export default function DiscoveryView() {
               style={{ padding: '6px 12px', fontSize: '0.85rem' }}
             >
               <option value="recommended">Recommended</option>
-              <option value="price-asc">Price: Low to High</option>
-              <option value="price-desc">Price: High to Low</option>
+              <option value="true-cost">True Living Cost: Low to High</option>
+              <option value="price-asc">Base Rent: Low to High</option>
+              <option value="price-desc">Base Rent: High to Low</option>
               <option value="transparency">Transparency Score</option>
               <option value="rating">User Rating</option>
             </select>
@@ -194,7 +251,7 @@ export default function DiscoveryView() {
                 <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🏡</div>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>No properties match this filter</h3>
                 <p style={{ color: 'var(--text-secondary)', marginTop: '4px', fontSize: '0.9rem' }}>
-                  Try resetting filters or expanding your budget range.
+                  Try resetting filters or expanding your budget or stay duration range.
                 </p>
                 <button className="btn btn-sm btn-primary" onClick={resetFilters} style={{ marginTop: '16px' }}>
                   Reset Filters
@@ -221,13 +278,18 @@ export default function DiscoveryView() {
                       ♥
                     </button>
                     <span className="badge badge-verified" style={{ position: 'absolute', bottom: '8px', left: '8px' }}>
-                      ✓ Verified
+                      ✓ Verified OCR
                     </span>
                   </div>
 
                   <div className="prop-row-body" onClick={() => openPropertyDetails(prop)}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <span className="card-type-tag">{prop.type}</span>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <span className="card-type-tag">{prop.type}</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#FEF3C7', color: '#92400E' }}>
+                          ⏳ {prop.minMonths || 2}–{prop.maxMonths || 12} Mos Stay
+                        </span>
+                      </div>
                       <div className="score-pill-mini">
                         ★ {prop.rating} ({prop.reviewsCount}) • {prop.transparencyScore}/100 Transparency
                       </div>
@@ -236,6 +298,11 @@ export default function DiscoveryView() {
                     <h3 className="prop-row-title">{prop.title}</h3>
                     <p className="prop-row-locality">
                       📍 {prop.locality}, {prop.city} • {prop.distance}
+                      {prop.campusDistances && (
+                        <span style={{ marginLeft: '8px', color: 'var(--primary-700)', fontWeight: 700 }}>
+                          🎓 {selectedCampus !== 'all' && prop.campusDistances[selectedCampus] ? `${prop.campusDistances[selectedCampus]} from ${selectedCampus}` : `1.2 km from Nirma Univ`}
+                        </span>
+                      )}
                     </p>
 
                     <div className="prop-row-specs">
@@ -244,22 +311,41 @@ export default function DiscoveryView() {
                       <span>{prop.specs.area}</span>
                       <span>•</span>
                       <span>{prop.specs.furnishing}</span>
+                      <span>•</span>
+                      <span style={{ color: 'var(--emerald-700)', fontWeight: 700 }}>🛡️ Safety: 94/100</span>
+                    </div>
+
+                    {/* True Cost of Living Formula Bar */}
+                    <div style={{
+                      background: '#F0FDF4',
+                      border: '1px solid #BBF7D0',
+                      borderRadius: '8px',
+                      padding: '6px 10px',
+                      fontSize: '0.78rem',
+                      color: '#166534',
+                      margin: '6px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <span style={{ fontWeight: 800 }}>True Monthly Cost:</span>
+                      <span style={{ fontWeight: 800, color: '#15803D' }}>
+                        ₹{(prop.trueMonthlyCost || (prop.rent + 4700)).toLocaleString('en-IN')}/mo
+                      </span>
+                      <span style={{ opacity: 0.85, fontSize: '0.72rem' }}>
+                        (Rent ₹{prop.rent.toLocaleString('en-IN')} + Commute ₹1,200 + Groceries ₹3,500)
+                      </span>
                     </div>
 
                     <div className="prop-row-footer">
                       <div>
                         <div className="prop-row-rent">
-                          ₹{prop.rent.toLocaleString('en-IN')}<span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>/mo</span>
+                          ₹{prop.rent.toLocaleString('en-IN')}<span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>/mo base</span>
                         </div>
                         <div className="deposit-info">Deposit: ₹{prop.deposit.toLocaleString('en-IN')}</div>
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ textAlign: 'right' }}>
-                          <span className="cost-est-pill">
-                            ₹{prop.estimatedLivingCost.toLocaleString('en-IN')}/mo total
-                          </span>
-                        </div>
                         <button
                           className="btn btn-sm btn-primary"
                           onClick={(e) => {
@@ -267,7 +353,7 @@ export default function DiscoveryView() {
                             openPropertyDetails(prop);
                           }}
                         >
-                          View Breakdown
+                          Cost Breakdown &amp; Apply →
                         </button>
                       </div>
                     </div>

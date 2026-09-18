@@ -122,8 +122,15 @@ export default function PropertyDetailsModal() {
             <div className="quick-spec-item">
               <span className="spec-icon">📅</span>
               <div>
-                <div className="spec-val">{prop.specs.moveInDate}</div>
-                <div className="spec-lbl">Availability</div>
+                <div className="spec-val">{prop.minMonths || 2}–{prop.maxMonths || 12} Mos</div>
+                <div className="spec-lbl">Stay Duration</div>
+              </div>
+            </div>
+            <div className="quick-spec-item">
+              <span className="spec-icon">🎓</span>
+              <div>
+                <div className="spec-val">{prop.campusDistances?.['Nirma University'] || '1.2 km (4m)'}</div>
+                <div className="spec-lbl">Near Nirma Univ</div>
               </div>
             </div>
           </div>

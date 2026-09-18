@@ -4,6 +4,11 @@ import { supabase } from './supabaseClient';
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 function normalizeProperty(p) {
+  const commute = p.true_cost_details?.commuteEstimate || p.trueCostDetails?.commuteEstimate || 1200;
+  const grocery = p.true_cost_details?.groceryEstimate || p.trueCostDetails?.groceryEstimate || 3500;
+  const rent = Number(p.rent);
+  const trueMonthlyCost = rent + commute + grocery;
+
   return {
     ...p,
     estimatedLivingCost: p.estimated_living_cost !== undefined ? Number(p.estimated_living_cost) : p.estimatedLivingCost,
@@ -12,7 +17,17 @@ function normalizeProperty(p) {
     transparencyBreakdown: p.transparency_breakdown || p.transparencyBreakdown,
     costBreakdown: p.cost_breakdown || p.costBreakdown,
     simplifiedAgreement: p.simplified_agreement || p.simplifiedAgreement,
-    rent: Number(p.rent),
+    minMonths: p.min_months !== undefined ? Number(p.min_months) : (p.minMonths || 2),
+    maxMonths: p.max_months !== undefined ? Number(p.max_months) : (p.maxMonths || 12),
+    availabilityStart: p.availability_start || p.availabilityStart || 'Immediate',
+    availabilityEnd: p.availability_end || p.availabilityEnd || 'Flexible',
+    shortTermPremium: p.short_term_premium !== undefined ? Number(p.short_term_premium) : (p.shortTermPremium || 0),
+    status: p.status || 'Active',
+    campusDistances: p.campus_distances || p.campusDistances || { "Nirma University": "1.2 km", "CEPT": "5.0 km" },
+    verificationStatus: p.verification_status || p.verificationStatus || 'verified',
+    trueCostDetails: { commuteEstimate: commute, groceryEstimate: grocery },
+    trueMonthlyCost,
+    rent,
     deposit: Number(p.deposit)
   };
 }
@@ -51,9 +66,12 @@ export const PropertyAPI = {
     if (filters.city && filters.city !== 'all') params.append('city', filters.city);
     if (filters.type && filters.type !== 'All Types') params.append('type', filters.type);
     if (filters.budgetRange && filters.budgetRange !== 'all') params.append('budgetRange', filters.budgetRange);
+    if (filters.duration && filters.duration !== 'all') params.append('duration', filters.duration);
+    if (filters.campus && filters.campus !== 'all') params.append('campus', filters.campus);
     if (filters.furnished) params.append('furnished', 'true');
     if (filters.roommatesAllowed) params.append('roommatesAllowed', 'true');
     if (filters.sortBy) params.append('sortBy', filters.sortBy);
+    if (filters.includeFound) params.append('includeFound', 'true');
 
     const query = params.toString() ? `?${params.toString()}` : '';
     return request(`/properties${query}`, { method: 'GET' }, async () => {
@@ -63,9 +81,19 @@ export const PropertyAPI = {
           let sbQuery = supabase.from('properties').select('*');
           if (filters.city && filters.city !== 'all') sbQuery = sbQuery.ilike('city', `%${filters.city}%`);
           if (filters.type && filters.type !== 'All Types') sbQuery = sbQuery.eq('type', filters.type);
+          if (!filters.includeFound) sbQuery = sbQuery.neq('status', 'Found');
           const { data, error } = await sbQuery;
           if (!error && data && data.length > 0) {
             let list = data.map(normalizeProperty);
+            if (!filters.includeFound) list = list.filter(p => p.status !== 'Found');
+            if (filters.duration && filters.duration !== 'all') {
+              const target = parseInt(filters.duration, 10);
+              if (!isNaN(target)) list = list.filter(p => p.minMonths <= target && p.maxMonths >= target);
+            }
+            if (filters.campus && filters.campus !== 'all') {
+              list = list.filter(p => p.campusDistances && p.campusDistances[filters.campus]);
+              list.sort((a, b) => parseFloat(a.campusDistances[filters.campus] || '99') - parseFloat(b.campusDistances[filters.campus] || '99'));
+            }
             if (filters.furnished) list = list.filter(p => p.specs?.furnishing === 'Furnished');
             if (filters.roommatesAllowed) list = list.filter(p => p.specs?.roommatesAllowed);
             if (filters.budgetRange === 'under-15k') list = list.filter(p => p.rent < 15000);
@@ -74,6 +102,7 @@ export const PropertyAPI = {
 
             if (filters.sortBy === 'price-asc') list.sort((a, b) => a.rent - b.rent);
             else if (filters.sortBy === 'price-desc') list.sort((a, b) => b.rent - a.rent);
+            else if (filters.sortBy === 'true-cost') list.sort((a, b) => a.trueMonthlyCost - b.trueMonthlyCost);
             else if (filters.sortBy === 'transparency') list.sort((a, b) => b.transparencyScore - a.transparencyScore);
             else if (filters.sortBy === 'rating') list.sort((a, b) => b.rating - a.rating);
 
@@ -85,12 +114,21 @@ export const PropertyAPI = {
       }
 
       // Memory fallback
-      let list = [...MOCK_DATA.properties];
+      let list = MOCK_DATA.properties.map(normalizeProperty);
+      if (!filters.includeFound) list = list.filter(p => p.status !== 'Found');
       if (filters.city && filters.city !== 'all') {
         list = list.filter(p => p.city.toLowerCase().includes(filters.city.toLowerCase()));
       }
       if (filters.type && filters.type !== 'All Types') {
         list = list.filter(p => p.type === filters.type);
+      }
+      if (filters.duration && filters.duration !== 'all') {
+        const target = parseInt(filters.duration, 10);
+        if (!isNaN(target)) list = list.filter(p => p.minMonths <= target && p.maxMonths >= target);
+      }
+      if (filters.campus && filters.campus !== 'all') {
+        list = list.filter(p => p.campusDistances && p.campusDistances[filters.campus]);
+        list.sort((a, b) => parseFloat(a.campusDistances[filters.campus] || '99') - parseFloat(b.campusDistances[filters.campus] || '99'));
       }
       if (filters.furnished) {
         list = list.filter(p => p.specs?.furnishing === 'Furnished');
@@ -107,6 +145,7 @@ export const PropertyAPI = {
       }
       if (filters.sortBy === 'price-asc') list.sort((a, b) => a.rent - b.rent);
       else if (filters.sortBy === 'price-desc') list.sort((a, b) => b.rent - a.rent);
+      else if (filters.sortBy === 'true-cost') list.sort((a, b) => a.trueMonthlyCost - b.trueMonthlyCost);
       else if (filters.sortBy === 'transparency') list.sort((a, b) => b.transparencyScore - a.transparencyScore);
       else if (filters.sortBy === 'rating') list.sort((a, b) => b.rating - a.rating);
 
@@ -461,6 +500,27 @@ export const OwnerAPI = {
       MOCK_DATA.ownerData.properties.unshift(newUnit);
       return { success: true, data: newUnit, message: 'Property listed successfully in Supabase!' };
     });
+  },
+
+  toggleListingStatus: async (id, status) => {
+    return request(`/owner/properties/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status })
+    }, async () => {
+      if (supabase) {
+        await supabase.from('properties').update({ status }).eq('id', id);
+        await supabase.from('owner_properties').update({ status: status === 'Found' ? 'Occupied' : 'Available' }).eq('id', id);
+      }
+      const prop = MOCK_DATA.properties.find(p => p.id === id);
+      if (prop) prop.status = status;
+      const unit = MOCK_DATA.ownerData.properties.find(p => p.id === id);
+      if (unit) unit.status = status === 'Found' ? 'Occupied' : 'Available';
+      return {
+        success: true,
+        message: status === 'Found' ? 'Listing marked as FOUND.' : 'Listing marked as ACTIVE.',
+        status
+      };
+    });
   }
 };
 
@@ -540,3 +600,518 @@ export const AgreementAPI = {
     }));
   }
 };
+
+// Permanent Role Auth API
+export const AuthAPI = {
+  register: async (payload) => {
+    return request(`/auth/register`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }, async () => {
+      const newUser = {
+        id: `usr-${Date.now()}`,
+        fullName: payload.fullName,
+        email: payload.email,
+        phone: payload.phone || '+91 98250 12345',
+        role: payload.role, // permanent
+        avatarUrl: payload.role === 'owner' ? '/avatars/rajesh.jpg' : '/avatars/het.jpg',
+        emailVerified: true
+      };
+      if (supabase) {
+        await supabase.from('profiles').insert([{
+          id: newUser.id,
+          full_name: newUser.fullName,
+          email: newUser.email,
+          phone: newUser.phone,
+          role: newUser.role,
+          avatar_url: newUser.avatarUrl,
+          email_verified: true
+        }]);
+      }
+      return {
+        success: true,
+        message: `Registered as ${payload.role.toUpperCase()}!`,
+        user: newUser,
+        token: `nestora-${newUser.id}`
+      };
+    });
+  },
+
+  login: async (email, password) => {
+    return request(`/auth/login`, {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+    }, async () => {
+      if (supabase) {
+        const { data } = await supabase.from('profiles').select('*').eq('email', email.toLowerCase()).single();
+        if (data) {
+          return {
+            success: true,
+            user: {
+              id: data.id,
+              fullName: data.full_name,
+              email: data.email,
+              phone: data.phone,
+              role: data.role,
+              avatarUrl: data.avatar_url,
+              emailVerified: data.email_verified
+            },
+            token: `nestora-${data.id}`
+          };
+        }
+      }
+      return {
+        success: true,
+        user: {
+          id: 'usr-tenant-1',
+          fullName: 'Het Darji',
+          email: email || 'het.darji@nirmauni.ac.in',
+          phone: '+91 98250 12345',
+          role: 'tenant',
+          avatarUrl: '/avatars/het.jpg',
+          emailVerified: true
+        },
+        token: 'nestora-demo-token'
+      };
+    });
+  },
+
+  getMe: async (userId) => {
+    return request(`/auth/me`, {
+      method: 'GET',
+      headers: { 'x-user-id': userId }
+    }, () => ({
+      success: true,
+      user: {
+        id: userId || 'usr-tenant-1',
+        fullName: 'Het Darji',
+        email: 'het.darji@nirmauni.ac.in',
+        role: 'tenant',
+        avatarUrl: '/avatars/het.jpg'
+      }
+    }));
+  }
+};
+
+// Move-In / Move-Out Proof Vault API
+export const ProofVaultAPI = {
+  getProofItems: async (propertyId, type) => {
+    const q = propertyId ? `?propertyId=${propertyId}${type ? `&type=${type}` : ''}` : '';
+    return request(`/proof-vault${q}`, { method: 'GET' }, async () => {
+      if (supabase) {
+        let sb = supabase.from('proof_vault').select('*').order('created_at', { ascending: false });
+        if (propertyId) sb = sb.eq('property_id', propertyId);
+        if (type) sb = sb.eq('type', type);
+        const { data } = await sb;
+        if (data && data.length > 0) {
+          return {
+            success: true,
+            data: data.map(i => ({
+              ...i,
+              tenancyId: i.tenancy_id,
+              propertyId: i.property_id,
+              itemName: i.item_name,
+              photoUrls: i.photo_urls || [],
+              meterReading: i.meter_reading,
+              tenantAcknowledged: i.tenant_acknowledged,
+              ownerAcknowledged: i.owner_acknowledged,
+              disputeNotes: i.dispute_notes
+            }))
+          };
+        }
+      }
+      return {
+        success: true,
+        data: [
+          {
+            id: 'pv-01',
+            tenancyId: 'ten-sg1',
+            propertyId: 'prop-1',
+            type: 'move_in',
+            room: 'Living Room',
+            itemName: 'Wooden Sofa & Coffee Table',
+            condition: 'Good (Minor scratch on left arm)',
+            photoUrls: ['https://images.unsplash.com/photo-1555041469-a586c61ea9bc'],
+            meterReading: 'N/A',
+            notes: 'Verified during handover with landlord present.',
+            tenantAcknowledged: true,
+            ownerAcknowledged: true,
+            disputeNotes: null
+          },
+          {
+            id: 'pv-02',
+            tenancyId: 'ten-sg1',
+            propertyId: 'prop-1',
+            type: 'move_in',
+            room: 'Utility Balcony',
+            itemName: 'Digital Electricity Meter',
+            condition: 'Excellent',
+            photoUrls: ['https://images.unsplash.com/photo-1581092160607-ee22621dd758'],
+            meterReading: 'Reading: 014820 kWh',
+            notes: 'Meter seal intact, stamped by Torrent Power.',
+            tenantAcknowledged: true,
+            ownerAcknowledged: true,
+            disputeNotes: null
+          }
+        ]
+      };
+    });
+  },
+
+  addProofItem: async (payload) => {
+    return request(`/proof-vault/items`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }, async () => {
+      const newItem = {
+        id: `pv-${Date.now()}`,
+        tenancy_id: payload.tenancyId || 'ten-sg1',
+        property_id: payload.propertyId || 'prop-1',
+        type: payload.type || 'move_in',
+        room: payload.room,
+        item_name: payload.itemName,
+        itemName: payload.itemName,
+        condition: payload.condition,
+        photo_urls: payload.photoUrls || [],
+        photoUrls: payload.photoUrls || [],
+        meter_reading: payload.meterReading || 'N/A',
+        meterReading: payload.meterReading || 'N/A',
+        notes: payload.notes || '',
+        tenant_acknowledged: true,
+        tenantAcknowledged: true,
+        owner_acknowledged: false,
+        ownerAcknowledged: false
+      };
+      if (supabase) {
+        await supabase.from('proof_vault').insert([newItem]);
+      }
+      return { success: true, message: 'Evidence saved in Proof Vault!', data: newItem };
+    });
+  },
+
+  acknowledgeItem: async (id, role) => {
+    return request(`/proof-vault/${id}/acknowledge`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role })
+    }, async () => {
+      if (supabase) {
+        const update = role === 'owner' ? { owner_acknowledged: true } : { tenant_acknowledged: true };
+        await supabase.from('proof_vault').update(update).eq('id', id);
+      }
+      return { success: true, message: `Signed off by ${role}!` };
+    });
+  },
+
+  disputeItem: async (id, disputeNotes) => {
+    return request(`/proof-vault/${id}/dispute`, {
+      method: 'POST',
+      body: JSON.stringify({ disputeNotes })
+    }, async () => {
+      if (supabase) {
+        await supabase.from('proof_vault').update({ dispute_notes: disputeNotes }).eq('id', id);
+      }
+      return { success: true, message: 'Dispute recorded with immutable timestamp.' };
+    });
+  }
+};
+
+// Stripe Payments API
+export const PaymentAPI = {
+  getPayments: async () => {
+    return request(`/payments`, { method: 'GET' }, async () => {
+      if (supabase) {
+        const { data } = await supabase.from('payments').select('*').order('created_at', { ascending: false });
+        if (data && data.length > 0) {
+          return {
+            success: true,
+            data: data.map(p => ({
+              ...p,
+              tenancyId: p.tenancy_id,
+              propertyId: p.property_id,
+              tenantName: p.tenant_name,
+              ownerName: p.owner_name,
+              amount: Number(p.amount),
+              dueDate: p.due_date,
+              paidAt: p.paid_at
+            }))
+          };
+        }
+      }
+      return {
+        success: true,
+        data: [
+          {
+            id: 'pay-101',
+            tenantName: 'Het Darji',
+            ownerName: 'Rajesh Patel',
+            amount: 18500,
+            breakdown: { baseRent: 16500, maintenance: 1200, waterSewage: 300, platformFee: 500 },
+            status: 'pending',
+            dueDate: 'October 5, 2026'
+          },
+          {
+            id: 'pay-102',
+            tenantName: 'Het Darji',
+            ownerName: 'Rajesh Patel',
+            amount: 18500,
+            breakdown: { baseRent: 16500, maintenance: 1200, waterSewage: 300, platformFee: 500 },
+            status: 'paid',
+            dueDate: 'September 5, 2026'
+          }
+        ]
+      };
+    });
+  },
+
+  createCheckoutSession: async (paymentId, amount) => {
+    return request(`/payments/create-checkout-session`, {
+      method: 'POST',
+      body: JSON.stringify({ paymentId, amount })
+    }, () => ({
+      success: true,
+      sessionId: `cs_test_${Date.now()}`,
+      checkoutUrl: 'https://checkout.stripe.com/demo'
+    }));
+  },
+
+  pay: async (paymentId) => {
+    return request(`/payments/pay`, {
+      method: 'POST',
+      body: JSON.stringify({ paymentId, paymentMethod: 'stripe' })
+    }, async () => {
+      if (supabase) {
+        await supabase.from('payments').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', paymentId);
+      }
+      return { success: true, message: 'Payment confirmed! Instant GST rent receipt generated.', status: 'paid' };
+    });
+  }
+};
+
+// Maintenance Relay Bot API
+export const MaintenanceBotAPI = {
+  sendMessage: async (payload) => {
+    return request(`/maintenance-bot/chat`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }, () => {
+      const ticketId = `maint-${Math.floor(100 + Math.random() * 900)}`;
+      return {
+        success: true,
+        ticketId,
+        reply: `Got it! Ticket #${ticketId} created (Plumbing, High Priority). Technician Ramesh Prajapati has been dispatched (ETA: Within 3 hours). Owner notified via WhatsApp.`
+      };
+    });
+  },
+
+  getHistory: async () => {
+    return request(`/maintenance-bot/history`, { method: 'GET' }, () => ({
+      success: true,
+      messages: [
+        {
+          id: 'msg-1',
+          senderType: 'bot',
+          message: 'Hello! I am Nestora Relay Bot. Type any maintenance issue (e.g. "geyser leaking", "ac stopped") to automatically dispatch a verified technician.'
+        }
+      ]
+    }));
+  },
+
+  escalate: async (ticketId) => {
+    return request(`/maintenance-bot/escalate`, {
+      method: 'POST',
+      body: JSON.stringify({ ticketId, reason: 'No response from technician within SLA threshold' })
+    }, () => ({
+      success: true,
+      message: `Ticket #${ticketId} escalated to Nestora Senior Operations Lead! Priority: CRITICAL.`
+    }));
+  }
+};
+
+// Roommate Contract Generator API
+export const RoommateContractAPI = {
+  getContracts: async () => {
+    return request(`/contracts`, { method: 'GET' }, async () => {
+      if (supabase) {
+        const { data } = await supabase.from('roommate_contracts').select('*').order('created_at', { ascending: false });
+        if (data && data.length > 0) return { success: true, data };
+      }
+      return {
+        success: true,
+        data: [
+          {
+            id: 'ct-01',
+            propertyName: 'Sunrise Harmony Heights (Flat 402)',
+            roommates: ['Het Darji', 'Aarav Sharma'],
+            rentSplit: { 'Het Darji': 8250, 'Aarav Sharma': 8250 },
+            utilities: 'Equal 50/50 split via Nestora Tenant Hub',
+            choresSchedule: 'Alternating weekly cleaning of kitchen & balcony',
+            quietHours: '11:00 PM – 7:00 AM on weekdays',
+            guestPolicy: 'Overnight guests permitted with 24-hr advance WhatsApp notice',
+            signatures: [
+              { name: 'Het Darji', signed: true, timestamp: '2026-09-01T14:30:00Z' },
+              { name: 'Aarav Sharma', signed: true, timestamp: '2026-09-01T15:45:00Z' }
+            ],
+            status: 'active'
+          }
+        ]
+      };
+    });
+  },
+
+  generateContract: async (payload) => {
+    return request(`/contracts/generate`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }, async () => {
+      const newContract = {
+        id: `ct-${Date.now()}`,
+        property_id: payload.propertyId || 'prop-1',
+        property_name: payload.propertyName || 'Nestora Shared Space',
+        propertyName: payload.propertyName || 'Nestora Shared Space',
+        roommates: payload.roommates || ['Het Darji', 'Aarav Sharma'],
+        rent_split: payload.rentSplit || { 'Het Darji': '50%', 'Aarav Sharma': '50%' },
+        rentSplit: payload.rentSplit || { 'Het Darji': '50%', 'Aarav Sharma': '50%' },
+        utilities: payload.utilities || 'Equal 50/50 split',
+        chores_schedule: payload.choresSchedule || 'Weekly rotation',
+        choresSchedule: payload.choresSchedule || 'Weekly rotation',
+        quiet_hours: payload.quietHours || '11 PM to 7 AM',
+        quietHours: payload.quietHours || '11 PM to 7 AM',
+        guest_policy: payload.guestPolicy || '24h advance consent',
+        guestPolicy: payload.guestPolicy || '24h advance consent',
+        signatures: [{ name: 'Het Darji (Creator)', signed: true, timestamp: new Date().toISOString() }],
+        status: 'pending_signatures'
+      };
+      if (supabase) {
+        await supabase.from('roommate_contracts').insert([newContract]);
+      }
+      return { success: true, message: 'Roommate House Constitution created!', contract: newContract };
+    });
+  },
+
+  signContract: async (id, signerName) => {
+    return request(`/contracts/${id}/sign`, {
+      method: 'POST',
+      body: JSON.stringify({ signerName })
+    }, () => ({
+      success: true,
+      message: `House Constitution countersigned by ${signerName}! Status: ACTIVE.`
+    }));
+  }
+};
+
+// Utility OCR Verification API
+export const VerificationAPI = {
+  getVerificationStatus: async (propertyId) => {
+    return request(`/verification/${propertyId}`, { method: 'GET' }, async () => {
+      if (supabase) {
+        const { data } = await supabase.from('verification_documents').select('*').eq('property_id', propertyId).single();
+        if (data) return { success: true, verification: data };
+      }
+      return {
+        success: true,
+        verification: {
+          id: 'ver-01',
+          propertyId,
+          documentType: 'Torrent Power Electricity Bill',
+          ocrExtractedData: {
+            consumerNo: '048291048',
+            billedTo: 'Rajeshkumar C. Patel',
+            serviceAddress: 'Flat 402, Sunrise Harmony Heights, SG Highway, Ahmedabad',
+            billingCycle: 'August 2026'
+          },
+          matchScore: 98.4,
+          status: 'verified'
+        }
+      };
+    });
+  },
+
+  uploadAndVerify: async (payload) => {
+    return request(`/verification/upload-ocr`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }, async () => {
+      const newDoc = {
+        id: `ver-${Date.now()}`,
+        property_id: payload.propertyId || 'prop-1',
+        document_type: payload.documentType || 'Electricity Utility Bill',
+        document_name: payload.documentName || 'torrent_bill.pdf',
+        ocr_extracted_data: {
+          consumerNo: `04${Math.floor(1000000 + Math.random() * 9000000)}`,
+          billedTo: payload.ownerName || 'Rajesh Patel',
+          serviceAddress: payload.propertyAddress || 'SG Highway, Ahmedabad',
+          billingCycle: 'Recent 60 Days'
+        },
+        match_score: 96.8,
+        status: 'verified'
+      };
+      if (supabase) {
+        await supabase.from('verification_documents').insert([newDoc]);
+        await supabase.from('properties').update({ verification_status: 'verified' }).eq('id', payload.propertyId);
+      }
+      return {
+        success: true,
+        message: 'OCR match verified! 96.8% confidence match against Torrent Power records. Listing is Verified ✓.',
+        verification: newDoc
+      };
+    });
+  }
+};
+
+// Neighborhood & Reviews API
+export const NeighborhoodAPI = {
+  getMetrics: async (locality) => {
+    return request(`/neighborhoods/${encodeURIComponent(locality)}`, { method: 'GET' }, async () => {
+      if (supabase) {
+        const { data } = await supabase.from('neighborhood_metrics').select('*').ilike('locality', `%${locality}%`).single();
+        if (data) return { success: true, data };
+      }
+      return {
+        success: true,
+        data: {
+          locality: locality || 'SG Highway, Ahmedabad',
+          safetyScore: 94,
+          lightingRating: 4.9,
+          transitAccess: 'Direct BRTS at doorstep, Nirma shuttle 200m',
+          studentVibe: 'High — 15+ student cafes, late night eateries, 24/7 co-working',
+          noiseLevel: 'Moderate (Quiet residential enclave set back from highway)',
+          residentFeedback: [
+            { author: 'Aarav M., Nirma Student', vibe: 'Super safe for late night study groups, streetlights always on.' }
+          ]
+        }
+      };
+    });
+  },
+
+  getReviews: async (propertyId) => {
+    return request(`/reviews/${propertyId}`, { method: 'GET' }, async () => {
+      if (supabase) {
+        const { data } = await supabase.from('verified_reviews').select('*').eq('property_id', propertyId);
+        if (data && data.length > 0) return { success: true, data };
+      }
+      return {
+        success: true,
+        data: [
+          {
+            id: 'rev-01',
+            tenantName: 'Aman Sharma (Nirma B.Tech)',
+            ratings: { accuracy: 5, cleanliness: 5, owner: 5, commute: 5, safety: 5, overall: 5 },
+            comment: 'Lived here for 6 months during my campus internship. Zero brokerage, accurate utility bills, and Rajesh uncle repaired the geyser on the same day!',
+            ownerResponse: 'Thank you Aman! Always welcome back at Nestora spaces.'
+          }
+        ]
+      };
+    });
+  },
+
+  addReview: async (payload) => {
+    return request(`/reviews`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }, () => ({
+      success: true,
+      message: 'Verified review published! Trust rating updated.'
+    }));
+  }
+};
+

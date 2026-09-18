@@ -15,13 +15,14 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: '*',
   credentials: true
 }));
 app.use(express.json());
 app.use(morgan('dev'));
 
 // API Routes
+app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/properties', require('./routes/propertyRoutes'));
 app.use('/api/roommates', require('./routes/roommateRoutes'));
 app.use('/api/expenses', require('./routes/expenseRoutes'));
@@ -30,6 +31,15 @@ app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/owner', require('./routes/ownerRoutes'));
 app.use('/api/valuation', require('./routes/valuationRoutes'));
 app.use('/api/agreement', require('./routes/agreementRoutes'));
+app.use('/api/proof-vault', require('./routes/proofVaultRoutes'));
+app.use('/api/payments', require('./routes/paymentRoutes'));
+app.use('/api/maintenance', require('./routes/botRoutes'));
+app.use('/api/maintenance-bot', require('./routes/botRoutes'));
+
+app.use('/api/contracts', require('./routes/contractRoutes'));
+app.use('/api/verification', require('./routes/verificationRoutes'));
+app.use('/api/neighborhoods', require('./routes/neighborhoodRoutes'));
+app.use('/api/reviews', require('./routes/reviewRoutes'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

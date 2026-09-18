@@ -29,6 +29,15 @@ import ProfileModal from '../components/modals/ProfileModal';
 import PayRentModal from '../components/modals/PayRentModal';
 import MatchCelebrationModal from '../components/modals/MatchCelebrationModal';
 
+// Extended Modals & Widgets for addme.md Specifications
+import RoleSelectModal from '../components/modals/RoleSelectModal';
+import AuthModal from '../components/modals/AuthModal';
+import ProofVaultModal from '../components/modals/ProofVaultModal';
+import RoommateContractModal from '../components/modals/RoommateContractModal';
+import UtilityVerificationModal from '../components/modals/UtilityVerificationModal';
+import StripePaymentModal from '../components/modals/StripePaymentModal';
+import MaintenanceChatWidget from '../components/common/MaintenanceChatWidget';
+
 export default function Home() {
   const { currentView } = useApp();
 
@@ -62,6 +71,17 @@ export default function Home() {
       <ProfileModal />
       <PayRentModal />
       <MatchCelebrationModal />
+
+      {/* Extended Specification Modals */}
+      <RoleSelectModal />
+      <AuthModal />
+      <ProofVaultModal />
+      <RoommateContractModal />
+      <UtilityVerificationModal />
+      <StripePaymentModal />
+
+      {/* WhatsApp / Chat-Native Maintenance Relay Assistant */}
+      <MaintenanceChatWidget />
 
       {/* Toast Feedback */}
       <ToastContainer />

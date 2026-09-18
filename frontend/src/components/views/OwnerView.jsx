@@ -5,7 +5,13 @@ import { useApp } from '../../context/AppContext';
 import { OwnerAPI } from '../../services/api';
 
 export default function OwnerView() {
-  const { setIsAddPropertyModalOpen } = useApp();
+  const {
+    setIsAddPropertyModalOpen,
+    setIsUtilityVerificationModalOpen,
+    setIsProofVaultModalOpen,
+    setIsStripePaymentModalOpen,
+    showToast
+  } = useApp();
   const [data, setData] = useState(null);
 
   const loadDashboard = () => {
@@ -19,6 +25,21 @@ export default function OwnerView() {
   useEffect(() => {
     loadDashboard();
   }, []);
+
+  const handleToggleStatus = async (id, currentStatus) => {
+    const nextStatus = currentStatus === 'Occupied' || currentStatus === 'Found' ? 'Active' : 'Found';
+    try {
+      await OwnerAPI.toggleListingStatus(id, nextStatus);
+      showToast(nextStatus === 'Found'
+        ? 'Listing marked as FOUND. Removed from public tenant search results.'
+        : 'Listing marked as ACTIVE. Now accepting applications.',
+        nextStatus === 'Found' ? 'info' : 'success'
+      );
+      loadDashboard();
+    } catch (e) {
+      showToast('Error updating status', 'error');
+    }
+  };
 
   const stats = data?.stats || {
     activeProperties: 8,
@@ -37,21 +58,35 @@ export default function OwnerView() {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <span className="badge badge-emerald" style={{ marginBottom: '8px' }}>LANDLORD & HOST HUB</span>
+            <span className="badge badge-emerald" style={{ marginBottom: '8px' }}>LANDLORD &amp; HOST HUB</span>
             <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              Property Portfolio & Yield Overview
+              Property Portfolio &amp; Yield Overview
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginTop: '4px' }}>
-              Direct oversight of units, tenant KYC status, automated rent payouts, and scheduled maintenance.
+              Direct oversight of units, Active/Found availability, utility OCR verification, and Proof Vault condition handovers.
             </p>
           </div>
 
-          <button
-            className="btn btn-primary"
-            onClick={() => setIsAddPropertyModalOpen(true)}
-          >
-            + List New Property
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setIsUtilityVerificationModalOpen(true)}
+            >
+              📄 Utility OCR Verify
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setIsProofVaultModalOpen(true)}
+            >
+              📦 Proof Vault Handover
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={() => setIsAddPropertyModalOpen(true)}
+            >
+              + List New Property
+            </button>
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -89,8 +124,11 @@ export default function OwnerView() {
 
         {/* Properties Table */}
         <div className="owner-table-card" style={{ marginTop: '36px' }}>
-          <div className="owner-table-header">
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Managed Living Units</h3>
+          <div className="owner-table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Managed Living Units &amp; Active / Found Status</h3>
+            <span style={{ fontSize: '0.82rem', color: 'var(--slate-500)' }}>
+              Mark &quot;Found&quot; when a tenant is placed to hide from search.
+            </span>
           </div>
 
           <div className="table-responsive">
@@ -101,10 +139,10 @@ export default function OwnerView() {
                   <th>Locality</th>
                   <th>Tenant</th>
                   <th>Rent / Mo</th>
-                  <th>Unit Status</th>
+                  <th>Listing Status</th>
                   <th>Rent Collection</th>
-                  <th>Maintenance</th>
-                  <th>Lease Expiry</th>
+                  <th>Verification</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -119,17 +157,46 @@ export default function OwnerView() {
                       <strong>₹{p.rent?.toLocaleString('en-IN')}</strong>
                     </td>
                     <td>
-                      <span className={`badge ${p.status === 'Occupied' ? 'badge-emerald' : 'badge-amber'}`}>
-                        {p.status}
-                      </span>
+                      <button
+                        onClick={() => handleToggleStatus(p.id, p.status)}
+                        className={`badge ${p.status === 'Occupied' || p.status === 'Found' ? 'badge-amber' : 'badge-emerald'}`}
+                        style={{ cursor: 'pointer', border: 'none' }}
+                        title="Click to toggle Active vs Found status"
+                      >
+                        {p.status === 'Occupied' || p.status === 'Found' ? '🔒 Found (Hidden)' : '🟢 Active (Open)'}
+                      </button>
                     </td>
                     <td>
                       <span className={`badge ${p.paymentStatus?.includes('Paid') ? 'badge-verified' : 'badge-rose'}`}>
                         {p.paymentStatus}
                       </span>
                     </td>
-                    <td>{p.maintenanceStatus}</td>
-                    <td>{p.leaseExpiry}</td>
+                    <td>
+                      <span
+                        onClick={() => setIsUtilityVerificationModalOpen(true)}
+                        style={{ cursor: 'pointer', color: 'var(--emerald-600)', fontWeight: 700, fontSize: '0.8rem' }}
+                      >
+                        ✓ OCR Verified
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          onClick={() => setIsProofVaultModalOpen(true)}
+                          className="btn btn-sm btn-secondary"
+                          style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                        >
+                          Proof
+                        </button>
+                        <button
+                          onClick={() => setIsStripePaymentModalOpen(true)}
+                          className="btn btn-sm btn-primary"
+                          style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                        >
+                          Invoice
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

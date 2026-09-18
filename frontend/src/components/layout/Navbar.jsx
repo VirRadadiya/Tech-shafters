@@ -8,10 +8,12 @@ export default function Navbar() {
     currentView,
     navigateTo,
     userRole,
-    setUserRole,
+    currentUser,
     unreadCount,
     setIsNotificationDrawerOpen,
     setIsProfileModalOpen,
+    setIsProofVaultModalOpen,
+    setIsRoommateContractModalOpen,
     showToast
   } = useApp();
 
@@ -71,22 +73,6 @@ export default function Navbar() {
           </li>
           <li>
             <a
-              className={`nav-link ${currentView === 'valuation' ? 'active' : ''}`}
-              onClick={() => navigateTo('valuation')}
-            >
-              Valuation
-            </a>
-          </li>
-          <li>
-            <a
-              className={`nav-link ${currentView === 'agreement' ? 'active' : ''}`}
-              onClick={() => navigateTo('agreement')}
-            >
-              Agreement
-            </a>
-          </li>
-          <li>
-            <a
               className={`nav-link ${currentView === 'dashboard' ? 'active' : ''}`}
               onClick={() => navigateTo('dashboard')}
             >
@@ -99,6 +85,24 @@ export default function Navbar() {
               onClick={() => navigateTo('maintenance')}
             >
               Maintenance
+            </a>
+          </li>
+          <li>
+            <a
+              className="nav-link"
+              onClick={() => setIsProofVaultModalOpen(true)}
+              title="Inspect move-in/move-out condition evidence"
+            >
+              Proof Vault
+            </a>
+          </li>
+          <li>
+            <a
+              className="nav-link"
+              onClick={() => setIsRoommateContractModalOpen(true)}
+              title="Generate roommate house constitution"
+            >
+              House Constitution
             </a>
           </li>
           {userRole === 'Owner' && (
@@ -115,20 +119,26 @@ export default function Navbar() {
 
         {/* Actions & User Profile */}
         <div className="nav-actions">
-          {/* Role Toggle */}
-          <div className="role-badge-toggle" title="Switch between Tenant and Landlord mode">
-            <button
-              className={`role-btn ${userRole === 'Tenant' ? 'active' : ''}`}
-              onClick={() => handleRoleToggle('Tenant')}
-            >
-              Tenant
-            </button>
-            <button
-              className={`role-btn ${userRole === 'Owner' ? 'active' : ''}`}
-              onClick={() => handleRoleToggle('Owner')}
-            >
-              Owner
-            </button>
+          {/* Permanent Role Indicator (No switcher as per addme.md) */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: '#EEF2FF',
+              border: '1px solid var(--primary-200)',
+              borderRadius: '20px',
+              padding: '6px 12px',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              color: 'var(--primary-700)'
+            }}
+            title="Permanent role assigned at registration (Authority: Supabase Auth/DB)"
+          >
+            <span>{userRole === 'Owner' ? '🏢 Owner' : '🏠 Tenant'}</span>
+            <span style={{ fontSize: '0.68rem', background: 'var(--white)', padding: '1px 5px', borderRadius: '4px', border: '1px solid var(--primary-200)' }}>
+              🔒 Fixed
+            </span>
           </div>
 
           {/* Notification Bell */}
@@ -153,10 +163,10 @@ export default function Navbar() {
             title="View account & verification"
             style={{ cursor: 'pointer' }}
           >
-            <img src="/avatar.png" alt="Het Darji" className="user-avatar" />
-            <span className="user-nav-name">Het Darji</span>
+            <img src={currentUser?.avatarUrl || "/avatar.png"} alt="User" className="user-avatar" />
+            <span className="user-nav-name">{currentUser?.fullName || 'Het Darji'}</span>
             <span className="badge badge-verified" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>
-              ✓ Verified
+              ✓ KYC
             </span>
           </div>
         </div>

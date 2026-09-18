@@ -8,6 +8,9 @@ import { MOCK_DATA } from '../../services/mockData';
 export default function DashboardView() {
   const {
     setIsPayRentModalOpen,
+    setIsStripePaymentModalOpen,
+    setIsProofVaultModalOpen,
+    setIsRoommateContractModalOpen,
     setIsSplitExpenseModalOpen,
     showToast
   } = useApp();
@@ -73,13 +76,59 @@ export default function DashboardView() {
               </p>
             </div>
           </div>
-          <button
-            className="btn btn-primary"
-            style={{ backgroundColor: '#FFFFFF', color: 'var(--primary)', fontWeight: 800, whiteSpace: 'nowrap' }}
-            onClick={() => setIsPayRentModalOpen(true)}
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button
+              className="btn btn-primary"
+              style={{ backgroundColor: '#FFFFFF', color: 'var(--primary)', fontWeight: 800, whiteSpace: 'nowrap' }}
+              onClick={() => setIsStripePaymentModalOpen(true)}
+            >
+              Pay Rent with Stripe →
+            </button>
+            <button
+              className="btn"
+              style={{ backgroundColor: 'rgba(255,255,255,0.18)', color: '#FFFFFF', fontWeight: 600, border: '1px solid rgba(255,255,255,0.3)', whiteSpace: 'nowrap' }}
+              onClick={() => setIsPayRentModalOpen(true)}
+            >
+              UPI Fast Pay
+            </button>
+          </div>
+        </div>
+
+        {/* Legal & Condition Security Quick Actions */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px', margin: '20px 0 28px' }}>
+          <div 
+            className="kpi-card" 
+            style={{ cursor: 'pointer', border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', transition: 'transform 0.2s, box-shadow 0.2s' }}
+            onClick={() => setIsProofVaultModalOpen(true)}
           >
-            Pay Rent Now →
-          </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+              <span style={{ fontSize: '1.4rem' }}>📸</span>
+              <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>Proof Vault (Move-in / Out)</div>
+            </div>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0 }}>
+              Verify photographic condition evidence, electricity/water meters, and signed condition checklists to protect 100% of your deposit.
+            </p>
+            <div style={{ marginTop: '10px', fontSize: '0.82rem', fontWeight: 700, color: 'var(--primary)' }}>
+              Open Proof Vault →
+            </div>
+          </div>
+
+          <div 
+            className="kpi-card" 
+            style={{ cursor: 'pointer', border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', transition: 'transform 0.2s, box-shadow 0.2s' }}
+            onClick={() => setIsRoommateContractModalOpen(true)}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+              <span style={{ fontSize: '1.4rem' }}>📜</span>
+              <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>Roommate Constitution</div>
+            </div>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0 }}>
+              Review your signed flatmate agreement, quiet hours (11 PM), chore rotations, guest limits, and mutual dispute resolution clauses.
+            </p>
+            <div style={{ marginTop: '10px', fontSize: '0.82rem', fontWeight: 700, color: 'var(--primary)' }}>
+              Review Constitution →
+            </div>
+          </div>
         </div>
 
         {/* Financial KPI Cards */}

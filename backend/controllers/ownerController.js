@@ -123,3 +123,37 @@ exports.addOwnerProperty = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// PATCH /api/owner/properties/:id/status
+// Support toggling between 'Active' and 'Found'
+exports.toggleListingStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body; // 'Active' or 'Found'
+
+    if (!['Active', 'Found'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Status must be either Active or Found' });
+    }
+
+    if (supabase) {
+      await supabase.from('properties').update({ status }).eq('id', id);
+      await supabase.from('owner_properties').update({ status: status === 'Found' ? 'Occupied' : 'Available' }).eq('id', id);
+    }
+
+    const unit = localOwnerProperties.find(p => p.id === id);
+    if (unit) {
+      unit.status = status === 'Found' ? 'Occupied' : 'Available';
+    }
+
+    return res.json({
+      success: true,
+      message: status === 'Found'
+        ? 'Listing marked as FOUND. Automatically removed from public tenant search results while retained in your records.'
+        : 'Listing marked as ACTIVE. Ready to accept student inquiries and applications.',
+      status
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
