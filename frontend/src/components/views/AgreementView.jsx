@@ -5,13 +5,15 @@ import { AgreementAPI } from '../../services/api';
 import { useApp } from '../../context/AppContext';
 
 export default function AgreementView() {
-  const { showToast } = useApp();
+  const { currentUser, showToast } = useApp();
   const [clauses, setClauses] = useState([]);
   const [signed, setSigned] = useState(false);
   const [signing, setSigning] = useState(false);
   const [clarificationModalOpen, setClarificationModalOpen] = useState(false);
   const [selectedClause, setSelectedClause] = useState(null);
   const [questionText, setQuestionText] = useState('');
+
+  const residentName = currentUser?.fullName || 'Resident';
 
   useEffect(() => {
     AgreementAPI.getClauses().then(res => {
@@ -25,7 +27,7 @@ export default function AgreementView() {
     setSigning(true);
     try {
       const res = await AgreementAPI.sign({
-        signerName: 'Het Darji',
+        signerName: residentName,
         aadhaarNumber: 'XXXX-XXXX-4892'
       });
       setSigned(true);
@@ -88,7 +90,7 @@ export default function AgreementView() {
         {/* Agreement Status Banner */}
         <div className="agreement-status-pill-banner">
           <div>
-            <strong>Property:</strong> Palm Grove Luxury Living - Flat 402 • <strong>Host:</strong> Vikrambhai Patel • <strong>Tenant:</strong> Het Darji
+            <strong>Property:</strong> Palm Grove Luxury Living - Flat 402 • <strong>Host:</strong> Vikrambhai Patel • <strong>Tenant:</strong> {residentName}
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <span className="badge badge-emerald">11 Months Lease</span>

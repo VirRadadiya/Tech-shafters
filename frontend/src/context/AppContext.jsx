@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { NotificationAPI } from '../services/api';
+import { supabase } from '../services/supabaseClient';
 
 const AppContext = createContext();
 
@@ -9,18 +10,31 @@ export function AppProvider({ children }) {
   const [currentView, setCurrentView] = useState('landing');
   const [searchPayload, setSearchPayload] = useState(null);
 
-  // Authentication & Permanent Role State
-  const [currentUser, setCurrentUser] = useState({
-    id: 'usr-tenant-1',
-    fullName: 'Het Darji',
-    email: 'het.darji@nirmauni.ac.in',
-    phone: '+91 98250 12345',
-    role: 'tenant', // strictly permanent
-    avatarUrl: '/avatars/het.jpg',
-    emailVerified: true
+  // Dynamic Authentication & Permanent Role State (Loaded from storage or Supabase)
+  const [currentUser, setCurrentUser] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('nestora_auth_user');
+        if (stored) return JSON.parse(stored);
+      } catch (e) {}
+    }
+    return null;
   });
-  const [userRole, setUserRole] = useState('Tenant'); // 'Tenant' | 'Owner'
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+
+  const [userRole, setUserRole] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const storedRole = localStorage.getItem('nestora_permanent_role');
+      if (storedRole) return storedRole.toLowerCase() === 'owner' ? 'Owner' : 'Tenant';
+    }
+    return 'Tenant';
+  });
+
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return !!localStorage.getItem('nestora_auth_user');
+    }
+    return false;
+  });
 
   // Modals & Drawers
   const [selectedProperty, setSelectedProperty] = useState(null);
@@ -37,7 +51,11 @@ export function AppProvider({ children }) {
   const [isPayRentModalOpen, setIsPayRentModalOpen] = useState(false);
   const [isMatchCelebrationOpen, setIsMatchCelebrationOpen] = useState(false);
 
-  // New Modals for addme.md specifications
+  // New Accommodation Checkout Modal
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [checkoutProperty, setCheckoutProperty] = useState(null);
+
+  // Role & Auth Modals
   const [isRoleSelectModalOpen, setIsRoleSelectModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState('signup'); // 'signup' | 'login'
@@ -72,20 +90,136 @@ export function AppProvider({ children }) {
 
   // Auth management
   const loginUser = (user) => {
-    setCurrentUser(user);
-    const normalizedRole = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+    if (!user) return;
+    const roleStr = user.role || 'tenant';
+    const normalizedRole = roleStr.toLowerCase() === 'owner' ? 'Owner' : 'Tenant';
+
+    const cleanUser = {
+      id: user.id || `usr-${Date.now()}`,
+      fullName: user.fullName || user.full_name || 'Resident',
+      email: user.email || '',
+      phone: user.phone || '+91 98250 12345',
+      role: roleStr.toLowerCase(),
+      avatarUrl: user.avatarUrl || user.avatar_url || (roleStr.toLowerCase() === 'owner' ? '/avatars/rajesh.jpg' : '/avatar.png'),
+      emailVerified: true
+    };
+
+    setCurrentUser(cleanUser);
     setUserRole(normalizedRole);
     setIsLoggedIn(true);
-    showToast(`Welcome back, ${user.fullName}! Signed in as verified ${normalizedRole}.`, 'success');
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('nestora_auth_user', JSON.stringify(cleanUser));
+      localStorage.setItem('nestora_permanent_role', roleStr.toLowerCase());
+    }
+
+    showToast(`Greetings, ${cleanUser.fullName}! Signed in as verified ${normalizedRole}.`, 'success');
   };
 
-  const logoutUser = () => {
+  const logoutUser = async () => {
+    try {
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
+    } catch (e) {
+      console.warn('Signout error:', e.message);
+    }
     setCurrentUser(null);
     setIsLoggedIn(false);
-    showToast('Signed out of Nestora account.');
+    setUserRole('Tenant');
+    setSavedProperties(new Set());
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('nestora_auth_user');
+      localStorage.removeItem('nestora_permanent_role');
+      sessionStorage.clear();
+    }
+    setCurrentView('landing');
+    showToast('Signed out of Nestora. All local session data cleared.', 'info');
   };
 
-  // Entry flow: Get Started -> Choose Role
+  // Supabase Auth listener on startup
+  useEffect(() => {
+    if (!supabase) return;
+
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        // Load user profile from Supabase profiles table
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data: profile }) => {
+            if (profile) {
+              const roleStr = profile.role || 'tenant';
+              const cleanUser = {
+                id: profile.id,
+                fullName: profile.full_name || 'Resident',
+                email: profile.email || session.user.email,
+                phone: profile.phone || '',
+                role: roleStr,
+                avatarUrl: profile.avatar_url || '/avatar.png',
+                emailVerified: true
+              };
+              setCurrentUser(cleanUser);
+              setUserRole(roleStr.toLowerCase() === 'owner' ? 'Owner' : 'Tenant');
+              setIsLoggedIn(true);
+              localStorage.setItem('nestora_auth_user', JSON.stringify(cleanUser));
+              localStorage.setItem('nestora_permanent_role', roleStr);
+            }
+          });
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile) {
+          const roleStr = profile.role || 'tenant';
+          const cleanUser = {
+            id: profile.id,
+            fullName: profile.full_name || 'Resident',
+            email: profile.email || session.user.email,
+            phone: profile.phone || '',
+            role: roleStr,
+            avatarUrl: profile.avatar_url || '/avatar.png',
+            emailVerified: true
+          };
+          setCurrentUser(cleanUser);
+          setUserRole(roleStr.toLowerCase() === 'owner' ? 'Owner' : 'Tenant');
+          setIsLoggedIn(true);
+          localStorage.setItem('nestora_auth_user', JSON.stringify(cleanUser));
+          localStorage.setItem('nestora_permanent_role', roleStr);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+        setIsLoggedIn(false);
+        localStorage.removeItem('nestora_auth_user');
+        localStorage.removeItem('nestora_permanent_role');
+      }
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, []);
+
+  const openAccommodationCheckout = (prop) => {
+    setCheckoutProperty(prop || selectedProperty);
+    setIsCheckoutModalOpen(true);
+  };
+
+  const closeAccommodationCheckout = () => {
+    setIsCheckoutModalOpen(false);
+    setCheckoutProperty(null);
+  };
+
   const startOnboarding = () => {
     setIsRoleSelectModalOpen(true);
   };
@@ -194,6 +328,13 @@ export function AppProvider({ children }) {
       setIsProfileModalOpen,
       isPayRentModalOpen,
       setIsPayRentModalOpen,
+
+      // Accommodation Checkout Modal
+      isCheckoutModalOpen,
+      setIsCheckoutModalOpen,
+      checkoutProperty,
+      openAccommodationCheckout,
+      closeAccommodationCheckout,
 
       // Extended Modals
       isRoleSelectModalOpen,

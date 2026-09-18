@@ -13,7 +13,7 @@ const chatSessions = [
     id: 'msg-02',
     ticketId: 'maint-101',
     senderType: 'bot',
-    message: 'Hello Het! Nestora Relay Bot here. Ticket #maint-101 has been logged with HIGH urgency. Verified plumber Ramesh Prajapati assigned (ETA: Today 2:30 PM). If landlord does not acknowledge within 2 hours, this ticket auto-escalates to Priority 1.',
+    message: 'Hello! Nestora Relay Bot here. Ticket #maint-101 has been logged with HIGH urgency. Verified plumber Ramesh Prajapati assigned (ETA: Today 2:30 PM). If landlord does not acknowledge within 2 hours, this ticket auto-escalates to Priority 1.',
     attachments: [],
     createdAt: '2026-09-17T11:01:00Z'
   }

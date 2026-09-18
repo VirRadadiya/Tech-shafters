@@ -5,13 +5,14 @@ import { MaintenanceBotAPI } from '../../services/api';
 import { useApp } from '../../context/AppContext';
 
 export default function MaintenanceChatWidget() {
-  const { showToast } = useApp();
+  const { currentUser, showToast } = useApp();
+  const residentName = currentUser?.fullName || 'Resident';
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
       id: 'msg-0',
       senderType: 'bot',
-      message: '👋 Hi Het! I am the Nestora Maintenance Relay Bot. Type any repair issue (e.g. "geyser leaking", "ac not cooling") or upload a photo to dispatch a technician immediately.',
+      message: `👋 Greetings, ${residentName}! I am the Nestora Maintenance Relay Bot. Type any repair issue (e.g. "geyser leaking", "ac not cooling") or upload a photo to dispatch a technician immediately.`,
       time: 'Just now'
     }
   ]);

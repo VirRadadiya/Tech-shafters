@@ -52,7 +52,7 @@ exports.signAgreement = async (req, res) => {
       success: true,
       message: 'DigiLocker Aadhaar eSign authenticated! The stamped digital rental agreement is now active and legally binding in Supabase.',
       details: {
-        signer: signerName || 'Het Darji',
+        signer: signerName || req.headers['x-user-name'] || 'Verified Tenant',
         maskedAadhaar: 'XXXX-XXXX-4892',
         agreementId: agreementId || 'LEAS-2026-AHM-402',
         timestamp: new Date().toISOString(),

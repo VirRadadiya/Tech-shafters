@@ -124,7 +124,7 @@ export default function AuthModal() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Het Darji"
+                  placeholder="e.g. Aman Singh"
                   value={fullName}
                   onChange={e => setFullName(e.target.value)}
                   className="search-input"
@@ -139,7 +139,7 @@ export default function AuthModal() {
                 <input
                   type="email"
                   required
-                  placeholder="e.g. het.darji@nirmauni.ac.in"
+                  placeholder="e.g. aman.singh@gmail.com"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   className="search-input"
@@ -253,7 +253,7 @@ export default function AuthModal() {
                 <input
                   type="email"
                   required
-                  placeholder="e.g. het.darji@nirmauni.ac.in"
+                  placeholder="e.g. aman.singh@gmail.com"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   className="search-input"

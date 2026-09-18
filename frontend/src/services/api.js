@@ -263,8 +263,8 @@ export const ExpenseAPI = {
         category: payload.category || 'General',
         total_amount: Number(payload.totalAmount),
         totalAmount: Number(payload.totalAmount),
-        paid_by: 'Het Darji (You)',
-        paidBy: 'Het Darji (You)',
+        paid_by: 'Current Resident (You)',
+        paidBy: 'Current Resident (You)',
         your_share: share,
         yourShare: share,
         status: `Roommate owes you ₹${share.toLocaleString('en-IN')}`,
@@ -614,7 +614,7 @@ export const AuthAPI = {
         email: payload.email,
         phone: payload.phone || '+91 98250 12345',
         role: payload.role, // permanent
-        avatarUrl: payload.role === 'owner' ? '/avatars/rajesh.jpg' : '/avatars/het.jpg',
+        avatarUrl: payload.role === 'owner' ? '/avatars/rajesh.jpg' : '/avatar.png',
         emailVerified: true
       };
       if (supabase) {
@@ -660,15 +660,16 @@ export const AuthAPI = {
           };
         }
       }
+      const derivedName = email ? email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Resident';
       return {
         success: true,
         user: {
-          id: 'usr-tenant-1',
-          fullName: 'Het Darji',
-          email: email || 'het.darji@nirmauni.ac.in',
+          id: 'usr-auth-' + Date.now(),
+          fullName: derivedName,
+          email: email || 'resident@example.com',
           phone: '+91 98250 12345',
           role: 'tenant',
-          avatarUrl: '/avatars/het.jpg',
+          avatarUrl: '/avatar.png',
           emailVerified: true
         },
         token: 'nestora-demo-token'
@@ -683,11 +684,11 @@ export const AuthAPI = {
     }, () => ({
       success: true,
       user: {
-        id: userId || 'usr-tenant-1',
-        fullName: 'Het Darji',
-        email: 'het.darji@nirmauni.ac.in',
+        id: userId || 'usr-auth-1',
+        fullName: 'Resident',
+        email: 'resident@example.com',
         role: 'tenant',
-        avatarUrl: '/avatars/het.jpg'
+        avatarUrl: '/avatar.png'
       }
     }));
   }
@@ -842,7 +843,7 @@ export const PaymentAPI = {
         data: [
           {
             id: 'pay-101',
-            tenantName: 'Het Darji',
+            tenantName: 'Current Resident (You)',
             ownerName: 'Rajesh Patel',
             amount: 18500,
             breakdown: { baseRent: 16500, maintenance: 1200, waterSewage: 300, platformFee: 500 },
@@ -851,7 +852,7 @@ export const PaymentAPI = {
           },
           {
             id: 'pay-102',
-            tenantName: 'Het Darji',
+            tenantName: 'Current Resident (You)',
             ownerName: 'Rajesh Patel',
             amount: 18500,
             breakdown: { baseRent: 16500, maintenance: 1200, waterSewage: 300, platformFee: 500 },
@@ -871,6 +872,19 @@ export const PaymentAPI = {
       success: true,
       sessionId: `cs_test_${Date.now()}`,
       checkoutUrl: 'https://checkout.stripe.com/demo'
+    }));
+  },
+
+  accommodationCheckout: async (payload) => {
+    return request(`/payments/accommodation-checkout`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }, () => ({
+      success: true,
+      transactionId: `txn_stripe_${Date.now()}`,
+      receiptNumber: `REC-NEST-${Math.floor(100000 + Math.random() * 900000)}`,
+      paidAmount: payload.totalInitialDue || (Number(payload.monthlyRent) + Number(payload.refundableDeposit)),
+      message: 'Accommodation reserved and initial escrow payment confirmed via Stripe!'
     }));
   },
 
@@ -941,14 +955,14 @@ export const RoommateContractAPI = {
           {
             id: 'ct-01',
             propertyName: 'Sunrise Harmony Heights (Flat 402)',
-            roommates: ['Het Darji', 'Aarav Sharma'],
-            rentSplit: { 'Het Darji': 8250, 'Aarav Sharma': 8250 },
+            roommates: ['Current Resident (You)', 'Aarav Sharma'],
+            rentSplit: { 'Current Resident (You)': 8250, 'Aarav Sharma': 8250 },
             utilities: 'Equal 50/50 split via Nestora Tenant Hub',
             choresSchedule: 'Alternating weekly cleaning of kitchen & balcony',
             quietHours: '11:00 PM – 7:00 AM on weekdays',
             guestPolicy: 'Overnight guests permitted with 24-hr advance WhatsApp notice',
             signatures: [
-              { name: 'Het Darji', signed: true, timestamp: '2026-09-01T14:30:00Z' },
+              { name: 'Current Resident (You)', signed: true, timestamp: '2026-09-01T14:30:00Z' },
               { name: 'Aarav Sharma', signed: true, timestamp: '2026-09-01T15:45:00Z' }
             ],
             status: 'active'
@@ -968,9 +982,9 @@ export const RoommateContractAPI = {
         property_id: payload.propertyId || 'prop-1',
         property_name: payload.propertyName || 'Nestora Shared Space',
         propertyName: payload.propertyName || 'Nestora Shared Space',
-        roommates: payload.roommates || ['Het Darji', 'Aarav Sharma'],
-        rent_split: payload.rentSplit || { 'Het Darji': '50%', 'Aarav Sharma': '50%' },
-        rentSplit: payload.rentSplit || { 'Het Darji': '50%', 'Aarav Sharma': '50%' },
+        roommates: payload.roommates || ['Current Resident', 'Aarav Sharma'],
+        rent_split: payload.rentSplit || { 'Current Resident': '50%', 'Aarav Sharma': '50%' },
+        rentSplit: payload.rentSplit || { 'Current Resident': '50%', 'Aarav Sharma': '50%' },
         utilities: payload.utilities || 'Equal 50/50 split',
         chores_schedule: payload.choresSchedule || 'Weekly rotation',
         choresSchedule: payload.choresSchedule || 'Weekly rotation',
@@ -978,7 +992,7 @@ export const RoommateContractAPI = {
         quietHours: payload.quietHours || '11 PM to 7 AM',
         guest_policy: payload.guestPolicy || '24h advance consent',
         guestPolicy: payload.guestPolicy || '24h advance consent',
-        signatures: [{ name: 'Het Darji (Creator)', signed: true, timestamp: new Date().toISOString() }],
+        signatures: [{ name: (payload.roommates?.[0] || 'Current Resident') + ' (Creator)', signed: true, timestamp: new Date().toISOString() }],
         status: 'pending_signatures'
       };
       if (supabase) {
@@ -1114,4 +1128,94 @@ export const NeighborhoodAPI = {
     }));
   }
 };
+
+// Owner & Landlord Hub API
+export const OwnerAPI = {
+  getDashboard: async () => {
+    return request('/owner/dashboard', { method: 'GET' }, async () => {
+      let properties = [];
+      if (supabase) {
+        const { data } = await supabase.from('owner_properties').select('*');
+        if (data && data.length > 0) properties = data;
+      }
+      return {
+        success: true,
+        data: {
+          stats: {
+            activeProperties: properties.filter(p => p.status === 'Active').length || 8,
+            occupiedUnits: properties.filter(p => p.status === 'Occupied' || p.status === 'Found').length || 7,
+            occupancyRate: '87.5%',
+            monthlyRevenue: 142000,
+            pendingMaintenance: 2,
+            onTimePayments: '94%'
+          },
+          properties
+        }
+      };
+    });
+  },
+
+  toggleListingStatus: async (id, status) => {
+    return request(`/owner/properties/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status })
+    }, async () => {
+      if (supabase) {
+        await supabase.from('owner_properties').update({ status }).eq('id', id);
+        await supabase.from('properties').update({ status }).eq('id', id);
+      }
+      return { success: true, message: `Status updated to ${status}` };
+    });
+  },
+
+  addProperty: async (payload) => {
+    return request('/owner/properties', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  },
+
+  updateProperty: async (id, payload) => {
+    return request(`/owner/properties/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
+  },
+
+  getApplications: async () => {
+    return request('/owner/applications', { method: 'GET' }, async () => {
+      if (supabase) {
+        const { data } = await supabase.from('applications').select('*').order('created_at', { ascending: false });
+        if (data) return { success: true, count: data.length, data };
+      }
+      return { success: true, count: 0, data: [] };
+    });
+  },
+
+  updateApplicationStatus: async (id, action) => {
+    return request(`/owner/applications/${id}/action`, {
+      method: 'POST',
+      body: JSON.stringify({ action })
+    }, async () => {
+      const newStatus = action === 'accept' ? 'accepted' : (action === 'reject' ? 'rejected' : 'info_requested');
+      if (supabase) {
+        await supabase.from('applications').update({ status: newStatus }).eq('id', id);
+      }
+      return { success: true, status: newStatus, message: `Application ${action}ed successfully!` };
+    });
+  },
+
+  updateMaintenanceStatus: async (id, status) => {
+    return request(`/owner/maintenance/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status })
+    }, async () => {
+      if (supabase) {
+        await supabase.from('maintenance_tickets').update({ status }).eq('id', id);
+      }
+      return { success: true, status, message: `Ticket status updated to ${status}` };
+    });
+  }
+};
+
 

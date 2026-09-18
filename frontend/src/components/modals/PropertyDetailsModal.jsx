@@ -9,6 +9,8 @@ export default function PropertyDetailsModal() {
     selectedProperty,
     isPropertyModalOpen,
     closePropertyDetails,
+    openAccommodationCheckout,
+    currentUser,
     navigateTo,
     showToast
   } = useApp();
@@ -37,15 +39,9 @@ export default function PropertyDetailsModal() {
     }
   };
 
-  const handleApply = async () => {
-    try {
-      const res = await PropertyAPI.applyNow({ propertyId: prop.id, applicantName: 'Het Darji' });
-      showToast(res.message || 'Application submitted with 0% brokerage!');
-      closePropertyDetails();
-      navigateTo('agreement');
-    } catch (e) {
-      console.error(e);
-    }
+  const handleApply = () => {
+    closePropertyDetails();
+    openAccommodationCheckout(prop);
   };
 
   const handleContactOwner = async () => {
@@ -285,7 +281,7 @@ export default function PropertyDetailsModal() {
             📅 Schedule In-Person Tour
           </button>
           <button className="btn btn-primary" onClick={handleApply}>
-            Apply Now (Zero Brokerage) →
+            Book Accommodation (Zero Brokerage) →
           </button>
         </div>
       </div>

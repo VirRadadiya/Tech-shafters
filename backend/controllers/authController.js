@@ -1,29 +1,31 @@
 const supabase = require('../config/supabase');
 
-// In-memory fallback profiles
+// Dynamic in-memory user registry for fast fallback
 const localProfiles = [
-  {
-    id: 'usr-tenant-1',
-    fullName: 'Het Darji',
-    email: 'het.darji@nirmauni.ac.in',
-    phone: '+91 98250 12345',
-    role: 'tenant',
-    avatarUrl: '/avatars/het.jpg',
-    emailVerified: true
-  },
   {
     id: 'usr-owner-1',
     fullName: 'Rajesh Patel',
     email: 'rajesh.patel@nestora.in',
     phone: '+91 94260 54321',
     role: 'owner',
-    avatarUrl: '/avatars/rajesh.jpg',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
     emailVerified: true
   }
 ];
 
+// Helper to derive a clean display name from email if needed
+function deriveNameFromEmail(email) {
+  if (!email) return 'User';
+  const localPart = email.split('@')[0];
+  return localPart
+    .split(/[._-]/)
+    .filter(Boolean)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ') || 'Nestora User';
+}
+
 // POST /api/auth/register
-// Role is chosen BEFORE signup and is permanent
+// Role is chosen BEFORE signup and is strictly permanent
 exports.register = async (req, res) => {
   try {
     const { fullName, email, phone, password, role } = req.body;
@@ -36,50 +38,65 @@ exports.register = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Role must be either tenant or owner.' });
     }
 
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanName = fullName.trim();
+    const avatar = role === 'owner' 
+      ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80'
+      : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80';
+
+    let userId = `usr-${Date.now()}`;
+
+    // 1. Create or update profile in Supabase
+    if (supabase) {
+      try {
+        // Check if profile exists
+        const { data: existing } = await supabase.from('profiles').select('*').eq('email', cleanEmail).maybeSingle();
+        if (existing) {
+          userId = existing.id;
+          await supabase.from('profiles').update({
+            full_name: cleanName,
+            phone: phone || existing.phone,
+            role: existing.role || role, // permanent role preserved
+            avatar_url: existing.avatar_url || avatar
+          }).eq('id', userId);
+        } else {
+          await supabase.from('profiles').insert([{
+            id: userId,
+            full_name: cleanName,
+            email: cleanEmail,
+            phone: phone || '',
+            role: role, // permanent
+            avatar_url: avatar,
+            email_verified: true
+          }]);
+        }
+      } catch (err) {
+        console.warn('[Supabase Profile Register]:', err.message);
+      }
+    }
+
     const newProfile = {
-      id: `usr-${Date.now()}`,
-      full_name: fullName,
-      fullName,
-      email: email.toLowerCase(),
+      id: userId,
+      fullName: cleanName,
+      email: cleanEmail,
       phone: phone || '',
-      role, // Permanent role
-      avatar_url: role === 'owner' ? '/avatars/rajesh.jpg' : '/avatars/het.jpg',
-      avatarUrl: role === 'owner' ? '/avatars/rajesh.jpg' : '/avatars/het.jpg',
-      email_verified: true,
+      role: role,
+      avatarUrl: avatar,
       emailVerified: true,
       created_at: new Date().toISOString()
     };
 
-    if (supabase) {
-      try {
-        await supabase.from('profiles').insert([{
-          id: newProfile.id,
-          full_name: newProfile.full_name,
-          email: newProfile.email,
-          phone: newProfile.phone,
-          role: newProfile.role,
-          avatar_url: newProfile.avatar_url,
-          email_verified: true
-        }]);
-      } catch (err) {
-        console.warn('[Supabase Profile Insert Error]:', err.message);
-      }
+    const existingLocalIdx = localProfiles.findIndex(p => p.email.toLowerCase() === cleanEmail);
+    if (existingLocalIdx >= 0) {
+      localProfiles[existingLocalIdx] = newProfile;
+    } else {
+      localProfiles.push(newProfile);
     }
-
-    localProfiles.push(newProfile);
 
     return res.status(201).json({
       success: true,
       message: `Account created successfully with permanent role: ${role.toUpperCase()}!`,
-      user: {
-        id: newProfile.id,
-        fullName: newProfile.fullName,
-        email: newProfile.email,
-        phone: newProfile.phone,
-        role: newProfile.role,
-        avatarUrl: newProfile.avatarUrl,
-        emailVerified: true
-      },
+      user: newProfile,
       token: `nestora-token-${newProfile.id}`
     });
   } catch (error) {
@@ -96,11 +113,13 @@ exports.login = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email and password are required.' });
     }
 
+    const cleanEmail = email.toLowerCase().trim();
     let user = null;
 
+    // 1. Query Supabase profiles table
     if (supabase) {
       try {
-        const { data } = await supabase.from('profiles').select('*').eq('email', email.toLowerCase()).single();
+        const { data } = await supabase.from('profiles').select('*').eq('email', cleanEmail).maybeSingle();
         if (data) {
           user = {
             id: data.id,
@@ -108,7 +127,7 @@ exports.login = async (req, res) => {
             email: data.email,
             phone: data.phone,
             role: data.role,
-            avatarUrl: data.avatar_url,
+            avatarUrl: data.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
             emailVerified: data.email_verified
           };
         }
@@ -117,13 +136,40 @@ exports.login = async (req, res) => {
       }
     }
 
+    // 2. Query in-memory registry
     if (!user) {
-      user = localProfiles.find(u => u.email.toLowerCase() === email.toLowerCase());
+      user = localProfiles.find(u => u.email.toLowerCase() === cleanEmail);
     }
 
+    // 3. If user is signing in for the first time with custom credentials, dynamically create their profile
     if (!user) {
-      // Default to Het Darji if demo credentials or not found
-      user = localProfiles[0];
+      const derivedName = deriveNameFromEmail(cleanEmail);
+      user = {
+        id: `usr-${Date.now()}`,
+        fullName: derivedName,
+        email: cleanEmail,
+        phone: '+91 98765 00000',
+        role: 'tenant', // permanent default
+        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+        emailVerified: true
+      };
+
+      if (supabase) {
+        try {
+          await supabase.from('profiles').insert([{
+            id: user.id,
+            full_name: user.fullName,
+            email: user.email,
+            phone: user.phone,
+            role: user.role,
+            avatar_url: user.avatarUrl,
+            email_verified: true
+          }]);
+        } catch (err) {
+          console.warn('[Supabase Auto-Profile Insert]:', err.message);
+        }
+      }
+      localProfiles.push(user);
     }
 
     return res.json({
@@ -140,26 +186,47 @@ exports.login = async (req, res) => {
 // GET /api/auth/me
 exports.getMe = async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] || 'usr-tenant-1';
+    const userId = req.headers['x-user-id'] || req.query.userId;
+    const userEmail = req.headers['x-user-email'] || req.query.email;
+
     let profile = null;
 
     if (supabase) {
-      const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
-      if (data) {
-        profile = {
-          id: data.id,
-          fullName: data.full_name,
-          email: data.email,
-          phone: data.phone,
-          role: data.role, // strictly permanent
-          avatarUrl: data.avatar_url,
-          emailVerified: data.email_verified
-        };
+      try {
+        let query = supabase.from('profiles').select('*');
+        if (userId) {
+          query = query.eq('id', userId);
+        } else if (userEmail) {
+          query = query.eq('email', userEmail.toLowerCase().trim());
+        } else {
+          return res.status(401).json({ success: false, message: 'Unauthenticated' });
+        }
+        const { data } = await query.maybeSingle();
+        if (data) {
+          profile = {
+            id: data.id,
+            fullName: data.full_name,
+            email: data.email,
+            phone: data.phone,
+            role: data.role,
+            avatarUrl: data.avatar_url,
+            emailVerified: data.email_verified
+          };
+        }
+      } catch (err) {
+        console.warn('[Supabase getMe Query]:', err.message);
       }
     }
 
+    if (!profile && userId) {
+      profile = localProfiles.find(p => p.id === userId);
+    }
+    if (!profile && userEmail) {
+      profile = localProfiles.find(p => p.email.toLowerCase() === userEmail.toLowerCase());
+    }
+
     if (!profile) {
-      profile = localProfiles.find(p => p.id === userId) || localProfiles[0];
+      return res.status(404).json({ success: false, message: 'User profile not found' });
     }
 
     return res.json({ success: true, user: profile });

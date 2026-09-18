@@ -5,14 +5,14 @@ const localContracts = [
     id: 'ct-01',
     propertyId: 'prop-1',
     propertyName: 'Sunrise Harmony Heights (Flat 402)',
-    roommates: ['Het Darji', 'Aarav Sharma'],
-    rentSplit: { 'Het Darji': 8250, 'Aarav Sharma': 8250 },
+    roommates: ['Lead Resident', 'Aarav Sharma'],
+    rentSplit: { 'Lead Resident': 8250, 'Aarav Sharma': 8250 },
     utilities: 'Equal 50/50 split via Nestora Tenant Hub',
     choresSchedule: 'Alternating weekly cleaning of kitchen & common balcony',
     quietHours: '11:00 PM – 7:00 AM on weekdays; 12:30 AM on weekends',
     guestPolicy: 'Overnight guests permitted with 24-hr advance WhatsApp notice',
     signatures: [
-      { name: 'Het Darji', signed: true, timestamp: '2026-09-01T14:30:00Z' },
+      { name: 'Lead Resident', signed: true, timestamp: '2026-09-01T14:30:00Z' },
       { name: 'Aarav Sharma', signed: true, timestamp: '2026-09-01T15:45:00Z' }
     ],
     status: 'active',
@@ -60,15 +60,16 @@ exports.generateContract = async (req, res) => {
     const { propertyId, propertyName, roommates, rentSplit, utilities, choresSchedule, quietHours, guestPolicy } = req.body;
 
     const contractId = `ct-${Date.now()}`;
+    const creatorName = req.body.creatorName || req.headers['x-user-name'] || 'Lead Resident';
     const newContract = {
       id: contractId,
       property_id: propertyId || 'prop-1',
       propertyId: propertyId || 'prop-1',
       property_name: propertyName || 'Nestora Shared Flat',
       propertyName: propertyName || 'Nestora Shared Flat',
-      roommates: roommates || ['Het Darji', 'New Roommate'],
-      rent_split: rentSplit || { 'Het Darji': '50%', 'Roommate': '50%' },
-      rentSplit: rentSplit || { 'Het Darji': '50%', 'Roommate': '50%' },
+      roommates: roommates || [creatorName, 'Flatmate'],
+      rent_split: rentSplit || { [creatorName]: '50%', 'Flatmate': '50%' },
+      rentSplit: rentSplit || { [creatorName]: '50%', 'Flatmate': '50%' },
       utilities: utilities || 'Equal 50/50 split for Torrent Power electricity, piped gas, and 200Mbps Wi-Fi.',
       chores_schedule: choresSchedule || 'Alternating weekly cleaning schedule for kitchen & common washroom.',
       choresSchedule: choresSchedule || 'Alternating weekly cleaning schedule for kitchen & common washroom.',
@@ -76,7 +77,7 @@ exports.generateContract = async (req, res) => {
       quietHours: quietHours || '11:00 PM to 7:00 AM on weekdays.',
       guest_policy: guestPolicy || 'Overnight guests allowed with 24 hours prior mutual consent.',
       guestPolicy: guestPolicy || 'Overnight guests allowed with 24 hours prior mutual consent.',
-      signatures: [{ name: 'Het Darji (Creator)', signed: true, timestamp: new Date().toISOString() }],
+      signatures: [{ name: `${creatorName} (Creator)`, signed: true, timestamp: new Date().toISOString() }],
       status: 'pending_signatures',
       created_at: new Date().toISOString(),
       createdAt: new Date().toISOString()

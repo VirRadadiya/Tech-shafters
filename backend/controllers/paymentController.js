@@ -5,7 +5,7 @@ const localPayments = [
     id: 'pay-101',
     tenancyId: 'ten-sg1',
     propertyId: 'prop-1',
-    tenantName: 'Het Darji',
+    tenantName: 'Current Resident (You)',
     ownerName: 'Rajesh Patel',
     amount: 18500,
     breakdown: { baseRent: 16500, maintenance: 1200, waterSewage: 300, platformFee: 500 },
@@ -18,7 +18,7 @@ const localPayments = [
     id: 'pay-102',
     tenancyId: 'ten-sg1',
     propertyId: 'prop-1',
-    tenantName: 'Het Darji',
+    tenantName: 'Current Resident (You)',
     ownerName: 'Rajesh Patel',
     amount: 18500,
     breakdown: { baseRent: 16500, maintenance: 1200, waterSewage: 300, platformFee: 500 },
@@ -120,3 +120,85 @@ exports.executePayment = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// POST /api/payments/accommodation-checkout
+exports.accommodationCheckout = async (req, res) => {
+  try {
+    const {
+      propertyId,
+      propertyName,
+      tenantName,
+      tenantEmail,
+      tenantPhone,
+      duration,
+      moveInDate,
+      moveOutDate,
+      monthlyRent,
+      refundableDeposit,
+      maintenanceFee,
+      estimatedUtilities,
+      serviceFee,
+      totalInitialDue
+    } = req.body;
+
+    const paymentAmount = Number(totalInitialDue) || (Number(monthlyRent) + Number(refundableDeposit));
+    const paymentId = `pay-chk-${Date.now()}`;
+    const paidAt = new Date().toISOString();
+
+    const paymentRecord = {
+      id: paymentId,
+      property_id: propertyId || 'prop-1',
+      tenant_name: tenantName || 'Resident',
+      owner_name: 'Verified Landlord',
+      amount: paymentAmount,
+      status: 'paid',
+      due_date: moveInDate || new Date().toISOString().split('T')[0],
+      paid_at: paidAt,
+      created_at: paidAt
+    };
+
+    if (supabase) {
+      try {
+        await supabase.from('payments').insert([paymentRecord]);
+        await supabase.from('applications').insert([{
+          id: `app-${Date.now()}`,
+          property_id: propertyId || 'prop-1',
+          applicant_name: tenantName || 'Resident',
+          applicant_email: tenantEmail || '',
+          applicant_phone: tenantPhone || '',
+          duration: `${duration || 3} Months`,
+          move_in_date: moveInDate || new Date().toISOString().split('T')[0],
+          monthly_rent: Number(monthlyRent) || 18000,
+          deposit: Number(refundableDeposit) || 36000,
+          status: 'accepted',
+          created_at: paidAt
+        }]);
+      } catch (sbErr) {
+        console.warn('[Supabase Checkout Insert Error]:', sbErr.message);
+      }
+    }
+
+    localPayments.unshift({
+      id: paymentId,
+      propertyId: propertyId || 'prop-1',
+      tenantName: tenantName || 'Resident',
+      ownerName: 'Verified Landlord',
+      amount: paymentAmount,
+      status: 'paid',
+      dueDate: moveInDate || 'Immediate',
+      paidAt,
+      createdAt: paidAt
+    });
+
+    return res.json({
+      success: true,
+      transactionId: `txn_stripe_${Date.now()}`,
+      receiptNumber: `REC-NEST-${Math.floor(100000 + Math.random() * 900000)}`,
+      paidAmount: paymentAmount,
+      message: 'Accommodation reserved and initial escrow payment confirmed via Stripe!'
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+

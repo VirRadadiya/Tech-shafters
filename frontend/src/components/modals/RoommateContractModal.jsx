@@ -5,11 +5,13 @@ import { useApp } from '../../context/AppContext';
 import { RoommateContractAPI } from '../../services/api';
 
 export default function RoommateContractModal() {
-  const { isRoommateContractModalOpen, setIsRoommateContractModalOpen, showToast } = useApp();
+  const { isRoommateContractModalOpen, setIsRoommateContractModalOpen, currentUser, showToast } = useApp();
 
   const [contracts, setContracts] = useState([]);
   const [activeView, setActiveView] = useState('generator'); // 'generator' | 'active'
   const [loading, setLoading] = useState(false);
+
+  const residentName = currentUser?.fullName || 'Resident';
 
   // Form State
   const [roommateName, setRoommateName] = useState('Aarav Sharma');
@@ -24,7 +26,9 @@ export default function RoommateContractModal() {
     setLoading(true);
     try {
       const res = await RoommateContractAPI.getContracts();
-      if (res && res.data) setContracts(res.data);
+      if (res && res.data) {
+        setContracts(res.data);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -33,7 +37,9 @@ export default function RoommateContractModal() {
   };
 
   useEffect(() => {
-    if (isRoommateContractModalOpen) fetchContracts();
+    if (isRoommateContractModalOpen) {
+      fetchContracts();
+    }
   }, [isRoommateContractModalOpen]);
 
   if (!isRoommateContractModalOpen) return null;
@@ -43,8 +49,8 @@ export default function RoommateContractModal() {
     try {
       const res = await RoommateContractAPI.generateContract({
         propertyName: 'Sunrise Harmony Heights (Flat 402)',
-        roommates: ['Het Darji', roommateName],
-        rentSplit: { 'Het Darji': `${rentSplitA}%`, [roommateName]: `${100 - rentSplitA}%` },
+        roommates: [residentName, roommateName],
+        rentSplit: { [residentName]: `${rentSplitA}%`, [roommateName]: `${100 - rentSplitA}%` },
         utilities,
         choresSchedule,
         quietHours,
@@ -241,7 +247,7 @@ export default function RoommateContractModal() {
                   HOUSE CONSTITUTION v1.0 (PROVISIONAL)
                 </div>
                 <p><strong>Property:</strong> Sunrise Harmony Heights (Flat 402)</p>
-                <p><strong>Parties:</strong> Het Darji &amp; {roommateName}</p>
+                <p><strong>Parties:</strong> {residentName} &amp; {roommateName}</p>
                 <p><strong>1. Rent Allocation:</strong> ₹8,250 ({rentSplitA}%) / ₹8,250 ({100 - rentSplitA}%) due on 5th of each calendar month.</p>
                 <p><strong>2. Utility Protocol:</strong> {utilities}.</p>
                 <p><strong>3. Cleaning Roster:</strong> {choresSchedule}.</p>
@@ -253,7 +259,7 @@ export default function RoommateContractModal() {
               <div style={{ borderTop: '1px dashed var(--slate-300)', paddingTop: '12px', marginTop: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <div>
-                    <span style={{ color: 'var(--emerald-600)', fontWeight: 800 }}>✓ Het Darji (Signed)</span>
+                    <span style={{ color: 'var(--emerald-600)', fontWeight: 800 }}>✓ {residentName} (Signed)</span>
                     <div style={{ fontSize: '0.72rem', color: 'var(--slate-500)' }}>Aadhaar Stamped</div>
                   </div>
                   <div>

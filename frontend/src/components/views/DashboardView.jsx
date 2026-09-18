@@ -7,6 +7,7 @@ import { MOCK_DATA } from '../../services/mockData';
 
 export default function DashboardView() {
   const {
+    currentUser,
     setIsPayRentModalOpen,
     setIsStripePaymentModalOpen,
     setIsProofVaultModalOpen,
@@ -29,6 +30,8 @@ export default function DashboardView() {
   useEffect(() => {
     loadExpenses();
   }, []);
+
+  const residentName = currentUser?.fullName || 'Resident';
 
   const handleSettleBalances = async () => {
     try {
@@ -55,7 +58,7 @@ export default function DashboardView() {
         <div style={{ marginBottom: '28px' }}>
           <span className="badge badge-primary" style={{ marginBottom: '8px' }}>ACTIVE TENANCY HUB</span>
           <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            Welcome Back, Het
+            Greetings, {residentName} 👋
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginTop: '4px' }}>
             Live rental dashboard for {lease.propertyName} • {lease.locality}

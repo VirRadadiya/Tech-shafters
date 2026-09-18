@@ -29,6 +29,14 @@ async function apiCall(endpoint, options = {}) {
 // Application State
 const AppState = {
   currentView: 'landing',
+  currentUser: (() => {
+    try {
+      const stored = localStorage.getItem('nestora_auth_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch (e) {
+      return null;
+    }
+  })(),
   selectedProperty: null,
   selectedRoommate: null,
   roommateCardIndex: 0,
@@ -47,6 +55,10 @@ const AppState = {
   userRole: (localStorage.getItem('nestora_permanent_role') || 'tenant') === 'owner' ? 'Owner' : 'Tenant',
   selectedPreRole: 'tenant',
   authMode: 'signup',
+  checkoutProperty: null,
+  checkoutDuration: 3,
+  checkoutStep: 1,
+  pendingStatusPropId: null,
   savedProperties: new Set(['prop-1']),
   liveProperties: null,
   sharedExpenses: [...(window.NESTORA_DATA?.sharedExpenses || [])],
@@ -83,20 +95,20 @@ const AppState = {
     {
       id: 'con-1',
       propertyName: 'Sunrise Harmony Heights (Flat 402)',
-      roommates: ['Het Darji', 'Aarav Sharma'],
-      rentSplit: { 'Het Darji': '50%', 'Aarav Sharma': '50%' },
+      roommates: ['Aman Singh', 'Aarav Sharma'],
+      rentSplit: { 'Aman Singh': '50%', 'Aarav Sharma': '50%' },
       quietHours: '11:00 PM – 7:00 AM (Weekdays)',
       choresSchedule: 'Alternating weekly kitchen and washroom cleaning',
       guestPolicy: 'Allowed with 24h advance WhatsApp notification',
       status: 'active',
-      signatures: [{ name: 'Het Darji', signed: true }, { name: 'Aarav Sharma', signed: true }]
+      signatures: [{ name: 'Aman Singh', signed: true }, { name: 'Aarav Sharma', signed: true }]
     }
   ],
   botMessages: [
     {
       id: 'msg-0',
       sender: 'bot',
-      text: '👋 Hi Het! I am the Nestora Maintenance Relay Bot. Type any repair issue (e.g. "geyser leaking", "ac not cooling") to dispatch a technician immediately.',
+      text: '👋 Greetings! I am the Nestora Maintenance Relay Bot. Type any repair issue (e.g. "geyser leaking", "ac not cooling") to dispatch a technician immediately.',
       time: 'Just now'
     }
   ]
@@ -109,6 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initApp() {
   initPermanentRoleBadge();
+  updateAuthUI();
   await loadLiveBackendData();
 
   renderShowcaseProperties();
@@ -119,6 +132,8 @@ async function initApp() {
   renderSharedExpenses();
   renderMaintenanceTickets();
   renderOwnerTable();
+  loadOwnerApplications();
+  renderOwnerMaintenanceTickets();
   renderNotificationDrawer();
   setupEventListeners();
   updateUnreadNotifBadge();
@@ -129,6 +144,76 @@ function initPermanentRoleBadge() {
   if (roleLabel) {
     roleLabel.innerText = AppState.permanentRole === 'owner' ? '🏢 Owner' : '🏠 Tenant';
   }
+}
+
+function updateAuthUI() {
+  const user = AppState.currentUser;
+  const userName = user ? (user.fullName || user.name || user.email?.split('@')[0] || 'Resident') : 'Resident';
+  const roleStr = (user?.role || AppState.permanentRole || 'tenant').toLowerCase();
+  const isOwner = roleStr === 'owner';
+
+  // Greeting in Tenant Dashboard
+  const dashGreeting = document.getElementById('dash-greeting-heading');
+  if (dashGreeting) {
+    dashGreeting.innerText = user ? `Greetings, ${userName} 👋` : 'Greetings, Resident 👋';
+  }
+
+  // Greeting in Owner Dashboard
+  const ownerGreeting = document.getElementById('owner-greeting-heading');
+  if (ownerGreeting) {
+    ownerGreeting.innerText = user ? `Greetings, ${userName} 👋` : 'Greetings, Landlord Partner 👋';
+  }
+
+  // Navbar user display
+  const navName = document.getElementById('user-nav-display-name');
+  if (navName) {
+    navName.innerText = user ? userName : 'Sign In';
+  }
+  const navAvatar = document.getElementById('user-nav-avatar');
+  if (navAvatar && user && user.avatarUrl) {
+    navAvatar.src = user.avatarUrl;
+  }
+
+  // Role Badge in Navbar
+  const roleLabel = document.getElementById('nav-role-label');
+  if (roleLabel) {
+    roleLabel.innerText = isOwner ? '🏢 Owner' : '🏠 Tenant';
+  }
+
+  // Profile Modal Elements
+  const profName = document.getElementById('profile-modal-name');
+  if (profName) profName.innerText = user ? userName : 'Resident';
+
+  const profRole = document.getElementById('profile-modal-role');
+  if (profRole) profRole.innerText = `Verified ${isOwner ? 'Owner' : 'Tenant'} • Ahmedabad`;
+
+  const profEmail = document.getElementById('profile-modal-email');
+  if (profEmail) profEmail.innerText = user?.email ? `✓ ${user.email}` : '✓ resident@example.com';
+
+  const profPhone = document.getElementById('profile-modal-phone');
+  if (profPhone) profPhone.innerText = user?.phone ? `✓ ${user.phone}` : '✓ +91 98250 12345';
+
+  const profPermRole = document.getElementById('profile-modal-perm-role');
+  if (profPermRole) profPermRole.innerText = `Locked & Verified (${isOwner ? 'Owner' : 'Tenant'})`;
+
+  const profAvatar = document.getElementById('profile-modal-avatar');
+  if (profAvatar && user && user.avatarUrl) profAvatar.src = user.avatarUrl;
+
+  // Constitution Preview
+  const rcPrevUser = document.getElementById('rc-prev-user-name');
+  if (rcPrevUser) rcPrevUser.innerText = userName;
+}
+
+function handleLogout() {
+  localStorage.removeItem('nestora_auth_user');
+  localStorage.removeItem('nestora_permanent_role');
+  AppState.currentUser = null;
+  AppState.permanentRole = 'tenant';
+  AppState.userRole = 'Tenant';
+  closeProfileModal();
+  updateAuthUI();
+  navigateTo('landing');
+  showToast('Signed out of Nestora. All user state purged.', 'info');
 }
 
 async function loadLiveBackendData() {
@@ -1046,7 +1131,7 @@ function submitNewSplitExpense(e) {
     title: title,
     category: category,
     totalAmount: amount,
-    paidBy: "Het Darji (You)",
+    paidBy: `${AppState.currentUser?.fullName || 'Resident'} (You)`,
     yourShare: share,
     status: `${roommate} owes you ₹${share.toLocaleString('en-IN')}`,
     isOwedByYou: false,
@@ -1305,7 +1390,7 @@ function renderOwnerTable() {
       <td>${p.tenant}</td>
       <td><strong>₹${p.rent.toLocaleString('en-IN')}/mo</strong></td>
       <td>
-        <button class="btn btn-sm" style="${toggleBtnStyle} border-radius:20px; font-weight:700; cursor:pointer; padding: 4px 12px; font-size:0.78rem; display:inline-flex; align-items:center; gap:5px;" onclick="toggleOwnerPropertyStatus('${p.id}', '${statusText}')" title="Click to toggle between Active and Found availability">
+        <button class="btn btn-sm" style="${toggleBtnStyle} border-radius:20px; font-weight:700; cursor:pointer; padding: 4px 12px; font-size:0.78rem; display:inline-flex; align-items:center; gap:5px;" onclick="openOwnerStatusConfirm('${p.id}')" title="Click to change availability status">
           ${isFound ? '🔒 Found (Hidden)' : '🟢 Active (Live)'}
         </button>
       </td>
@@ -1321,6 +1406,7 @@ function renderOwnerTable() {
       </td>
       <td>
         <div style="display:flex; gap:6px;">
+          <button class="btn btn-sm btn-primary" onclick="openOwnerEditPropertyModal('${p.id}')" title="Edit property details">Edit</button>
           <button class="btn btn-sm btn-secondary" onclick="openProofVaultModal()" title="View Move-In / Move-Out Proof Vault">Proof</button>
           <button class="btn btn-sm btn-outline" onclick="showToast('GST Rental Invoice downloaded for ${p.tenant}!')">Invoice</button>
         </div>
@@ -1329,23 +1415,55 @@ function renderOwnerTable() {
   `}).join('');
 }
 
-async function toggleOwnerPropertyStatus(id, currentStatus) {
-  const newStatus = currentStatus === 'Active' ? 'Found' : 'Active';
+function openOwnerStatusConfirm(propId) {
+  const modal = document.getElementById('owner-status-confirm-modal');
+  if (!modal) return;
+  AppState.pendingStatusPropId = propId;
+  const p = (AppState.liveProperties || window.NESTORA_DATA.properties).find(x => x.id === propId) 
+    || window.NESTORA_DATA.ownerData.properties.find(x => x.id === propId);
+  const title = p ? p.title : 'Selected Property';
+  const isFound = p ? (p.listingStatus === 'Found' || p.status === 'Found') : false;
+  const newStatus = isFound ? 'Active (Live for student applications)' : 'Found (Hidden from public search)';
+
+  const msg = document.getElementById('owner-confirm-msg');
+  if (msg) {
+    msg.innerHTML = `Are you sure you want to mark <strong>"${title}"</strong> as <strong>${newStatus}</strong>?<br/><br/>${isFound ? 'This will make the property immediately discoverable by students and open to applications.' : 'This will hide the property from student searches while preserving current tenancy records.'}`;
+  }
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeOwnerStatusConfirmModal() {
+  const modal = document.getElementById('owner-status-confirm-modal');
+  if (modal) {
+    modal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  AppState.pendingStatusPropId = null;
+}
+
+async function executeOwnerStatusChange() {
+  const id = AppState.pendingStatusPropId;
+  if (!id) return;
+  closeOwnerStatusConfirmModal();
+
   const ownerProp = window.NESTORA_DATA.ownerData.properties.find(p => p.id === id);
+  const currentStatus = ownerProp ? (ownerProp.listingStatus || ownerProp.status) : 'Active';
+  const newStatus = currentStatus === 'Active' ? 'Found' : 'Active';
+
   if (ownerProp) {
     ownerProp.listingStatus = newStatus;
     ownerProp.status = newStatus;
   }
 
-  // Also update in public property pool if matching
   const matchingProp = (AppState.liveProperties || window.NESTORA_DATA.properties).find(p => p.id === id || (p.title && ownerProp && p.title.includes(ownerProp.title.split(' - ')[0])));
   if (matchingProp) {
     matchingProp.listingStatus = newStatus;
     matchingProp.status = newStatus;
   }
 
-  // Sync with Express backend
-  apiCall(`/properties/${id}/status`, {
+  // Sync with Express & Supabase backend
+  await apiCall(`/properties/${id}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ listingStatus: newStatus })
   });
@@ -1359,6 +1477,280 @@ async function toggleOwnerPropertyStatus(id, currentStatus) {
   } else {
     showToast(`Unit marked as Active! Now live and visible to students.`);
   }
+}
+
+function openOwnerEditPropertyModal(propId) {
+  const modal = document.getElementById('owner-edit-property-modal');
+  if (!modal) return;
+  const p = (AppState.liveProperties || window.NESTORA_DATA.properties).find(x => x.id === propId) 
+    || window.NESTORA_DATA.ownerData.properties.find(x => x.id === propId);
+  if (!p) return;
+
+  document.getElementById('edit-prop-id').value = p.id;
+  document.getElementById('edit-prop-title').value = p.title || '';
+  document.getElementById('edit-prop-rent').value = p.rent || 18000;
+  document.getElementById('edit-prop-deposit').value = p.deposit || (p.rent ? p.rent * 2 : 36000);
+  document.getElementById('edit-prop-locality').value = p.locality || 'SG Highway, Ahmedabad';
+  
+  const statusSelect = document.getElementById('edit-prop-status');
+  if (statusSelect) {
+    statusSelect.value = (p.listingStatus === 'Found' || p.status === 'Found') ? 'Found' : 'Active';
+  }
+
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeOwnerEditPropertyModal() {
+  const modal = document.getElementById('owner-edit-property-modal');
+  if (modal) {
+    modal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+}
+
+async function handleSavePropertyEdit(e) {
+  e.preventDefault();
+  const id = document.getElementById('edit-prop-id').value;
+  const title = document.getElementById('edit-prop-title').value.trim();
+  const rent = parseFloat(document.getElementById('edit-prop-rent').value);
+  const deposit = parseFloat(document.getElementById('edit-prop-deposit').value);
+  const locality = document.getElementById('edit-prop-locality').value.trim();
+  const status = document.getElementById('edit-prop-status').value;
+
+  const ownerProp = window.NESTORA_DATA.ownerData.properties.find(p => p.id === id);
+  if (ownerProp) {
+    ownerProp.title = title;
+    ownerProp.rent = rent;
+    ownerProp.deposit = deposit;
+    ownerProp.locality = locality;
+    ownerProp.listingStatus = status;
+    ownerProp.status = status;
+  }
+
+  const liveProp = (AppState.liveProperties || window.NESTORA_DATA.properties).find(p => p.id === id);
+  if (liveProp) {
+    liveProp.title = title;
+    liveProp.rent = rent;
+    liveProp.deposit = deposit;
+    liveProp.locality = locality;
+    liveProp.listingStatus = status;
+    liveProp.status = status;
+  }
+
+  await apiCall(`/owner/properties/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      title,
+      rent,
+      deposit,
+      locality,
+      listingStatus: status
+    })
+  });
+
+  closeOwnerEditPropertyModal();
+  renderOwnerTable();
+  renderDiscoveryProperties();
+  renderDiscoveryMapPins();
+  showToast(`Property "${title}" updated and synced to Supabase!`, 'success');
+}
+
+async function loadOwnerApplications() {
+  const container = document.getElementById('owner-applications-list');
+  if (!container) return;
+
+  const res = await apiCall('/owner/applications');
+  let applications = [];
+  if (res && res.data && res.data.length > 0) {
+    applications = res.data;
+  } else {
+    applications = [
+      {
+        id: 'app-1',
+        applicant_name: 'Aman Singh',
+        applicant_avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=150&q=80',
+        applicant_college: 'Nirma University (B.Tech CS)',
+        property_title: 'Palm Grove Luxury Living - Flat 402',
+        duration_months: 3,
+        move_in_date: '2026-10-01',
+        budget: 18000,
+        status: 'pending',
+        created_at: '2 hours ago'
+      },
+      {
+        id: 'app-2',
+        applicant_name: 'Siddharth Malhotra',
+        applicant_avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+        applicant_college: 'CEPT University (Architecture)',
+        property_title: 'Bodakdev Minimal Studio - Unit 201',
+        duration_months: 4,
+        move_in_date: '2026-10-15',
+        budget: 22000,
+        status: 'approved',
+        created_at: 'Yesterday'
+      },
+      {
+        id: 'app-3',
+        applicant_name: 'Priya Sharma',
+        applicant_avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+        applicant_college: 'Ahmedabad University (BBA)',
+        property_title: 'Navrangpura Cozy Studio - Flat 104',
+        duration_months: 2,
+        move_in_date: '2026-11-01',
+        budget: 16000,
+        status: 'pending',
+        created_at: '3 days ago'
+      }
+    ];
+  }
+
+  container.innerHTML = applications.map(app => {
+    const isApproved = app.status === 'approved' || app.status === 'accepted';
+    const isRejected = app.status === 'rejected';
+    const statusBadge = isApproved
+      ? '<span class="badge badge-emerald">✓ Approved</span>'
+      : (isRejected ? '<span class="badge badge-rose">✕ Rejected</span>' : '<span class="badge badge-amber">⏳ Pending Review</span>');
+
+    return `
+      <div style="background: var(--bg-surface-secondary); border: 1.5px solid var(--border-subtle); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <img src="${app.applicant_avatar || '—Pngtree—man avatar image for profile_13001882.png'}" alt="${app.applicant_name}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-light);" />
+              <div>
+                <strong style="font-size: 0.95rem; display: block;">${app.applicant_name}</strong>
+                <span style="font-size: 0.75rem; color: var(--text-muted);">${app.applicant_college || 'Student'}</span>
+              </div>
+            </div>
+            ${statusBadge}
+          </div>
+          <div style="font-size: 0.82rem; margin-bottom: 8px;">
+            <span style="color: var(--text-muted);">Property:</span> <strong>${app.property_title}</strong>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.78rem; background: var(--bg-surface); padding: 8px 10px; border-radius: 8px; margin-bottom: 14px;">
+            <div><span style="color: var(--text-muted);">Stay:</span> <strong>${app.duration_months || 3} Months</strong></div>
+            <div><span style="color: var(--text-muted);">Move-in:</span> <strong>${app.move_in_date || 'Oct 2026'}</strong></div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          ${!isApproved && !isRejected ? `
+            <button class="btn btn-sm btn-primary" style="flex: 1; padding: 6px;" onclick="handleOwnerApplicationAction('${app.id}', 'approve')">
+              ✓ Accept
+            </button>
+            <button class="btn btn-sm btn-secondary" style="flex: 1; padding: 6px;" onclick="handleOwnerApplicationAction('${app.id}', 'reject')">
+              ✕ Reject
+            </button>
+            <button class="btn btn-sm btn-outline" style="padding: 6px;" onclick="handleOwnerApplicationAction('${app.id}', 'request_info')" title="Request more info">
+              💬 Info
+            </button>
+          ` : `
+            <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; width: 100%;">
+              Decision logged to Supabase • Notification sent to applicant
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function handleOwnerApplicationAction(appId, action) {
+  const actionText = action === 'approve' ? 'approved' : (action === 'reject' ? 'rejected' : 'information requested');
+  
+  await apiCall(`/owner/applications/${appId}/action`, {
+    method: 'POST',
+    body: JSON.stringify({ action })
+  });
+
+  showToast(`Application #${appId} ${actionText}! Updated on Supabase.`, 'success');
+  loadOwnerApplications();
+}
+
+function renderOwnerMaintenanceTickets() {
+  const container = document.getElementById('owner-maintenance-list');
+  if (!container) return;
+
+  const tickets = [
+    {
+      id: 'maint-101',
+      tenant: 'Aman Singh',
+      property: 'Palm Grove Luxury Living (Flat 402)',
+      issue: 'Geyser heating element tripping circuit breaker',
+      priority: 'high',
+      status: 'In Progress',
+      technician: 'Ramesh Kumar (Electrician)',
+      time: 'Logged 2h ago via WhatsApp Relay Bot'
+    },
+    {
+      id: 'maint-102',
+      tenant: 'Sneha Nair',
+      property: 'Bodakdev Minimal Studio (Unit 201)',
+      issue: 'Kitchen RO filter slow flow rate',
+      priority: 'medium',
+      status: 'Assigned',
+      technician: 'Vijay Appliances',
+      time: 'Logged yesterday'
+    },
+    {
+      id: 'maint-103',
+      tenant: 'Kunal Verma',
+      property: 'Navrangpura Cozy Studio (Flat 104)',
+      issue: 'AC filter cleaning & refrigerant top-up',
+      priority: 'low',
+      status: 'Resolved',
+      technician: 'CoolTech Service',
+      time: 'Resolved 3 days ago'
+    }
+  ];
+
+  container.innerHTML = tickets.map(t => {
+    const isResolved = t.status === 'Resolved';
+    const isHigh = t.priority === 'high';
+
+    return `
+      <div style="background: var(--bg-surface-secondary); border: 1.5px solid var(--border-subtle); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+            <span class="badge ${isHigh ? 'badge-rose' : 'badge-amber'}">${t.priority.toUpperCase()} PRIORITY</span>
+            <span class="badge ${isResolved ? 'badge-emerald' : 'badge-primary'}">${t.status}</span>
+          </div>
+          <h4 style="margin: 0 0 4px; font-size: 0.95rem; font-weight: 800;">${t.issue}</h4>
+          <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">
+            Tenant: <strong>${t.tenant}</strong> • ${t.property}
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px;">
+            Assigned: <strong>${t.technician}</strong> • ${t.time}
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          ${!isResolved ? `
+            <button class="btn btn-sm btn-primary" style="flex: 1; padding: 6px;" onclick="handleOwnerMaintenanceStatus('${t.id}', 'Resolved')">
+              ✓ Mark Resolved
+            </button>
+            <button class="btn btn-sm btn-secondary" style="flex: 1; padding: 6px;" onclick="showToast('Technician dispatched via WhatsApp!')">
+              📞 Dispatch
+            </button>
+          ` : `
+            <div style="font-size: 0.8rem; color: var(--accent-emerald-dark); font-weight: 700; width: 100%; text-align: center;">
+              ✓ Ticket Closed (Verified by Tenant)
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function handleOwnerMaintenanceStatus(ticketId, newStatus) {
+  await apiCall(`/owner/maintenance/${ticketId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: newStatus })
+  });
+  showToast(`Maintenance Ticket #${ticketId} marked as ${newStatus}!`, 'success');
+  renderOwnerMaintenanceTickets();
 }
 
 
@@ -1549,7 +1941,7 @@ function setupEventListeners() {
       AppState.userRole = 'Tenant';
       updateRoleButtons();
       navigateTo('dashboard');
-      showToast('Switched to Tenant View (Het Darji)');
+      showToast(`Switched to Tenant View (${AppState.currentUser?.fullName || 'Resident'})`);
     });
   }
 
@@ -1558,7 +1950,7 @@ function setupEventListeners() {
       AppState.userRole = 'Owner';
       updateRoleButtons();
       navigateTo('owner');
-      showToast('Switched to Owner/Host View (8 Properties)');
+      showToast(`Switched to Owner/Host View (${AppState.currentUser?.fullName || 'Landlord Partner'})`);
     });
   }
 
@@ -1607,6 +1999,32 @@ window.openProfileModal = openProfileModal;
 window.closeProfileModal = closeProfileModal;
 window.showToast = showToast;
 window.toggleOwnerPropertyStatus = toggleOwnerPropertyStatus;
+window.openOwnerStatusConfirm = openOwnerStatusConfirm;
+window.closeOwnerStatusConfirmModal = closeOwnerStatusConfirmModal;
+window.executeOwnerStatusChange = executeOwnerStatusChange;
+window.openOwnerEditPropertyModal = openOwnerEditPropertyModal;
+window.closeOwnerEditPropertyModal = closeOwnerEditPropertyModal;
+window.handleSavePropertyEdit = handleSavePropertyEdit;
+window.loadOwnerApplications = loadOwnerApplications;
+window.handleOwnerApplicationAction = handleOwnerApplicationAction;
+window.renderOwnerMaintenanceTickets = renderOwnerMaintenanceTickets;
+window.handleOwnerMaintenanceStatus = handleOwnerMaintenanceStatus;
+window.openAccommodationCheckoutModal = openAccommodationCheckoutModal;
+window.closeAccommodationCheckoutModal = closeAccommodationCheckoutModal;
+window.goToCheckoutStep = goToCheckoutStep;
+window.setCheckoutDuration = setCheckoutDuration;
+window.updateCheckoutDates = updateCheckoutDates;
+window.executeAccommodationCheckout = executeAccommodationCheckout;
+window.handleLogout = handleLogout;
+window.updateAuthUI = updateAuthUI;
+window.openRoleSelectModal = openRoleSelectModal;
+window.closeRoleSelectModal = closeRoleSelectModal;
+window.selectRoleOption = selectRoleOption;
+window.proceedFromRoleSelect = proceedFromRoleSelect;
+window.openAuthModal = openAuthModal;
+window.closeAuthModal = closeAuthModal;
+window.toggleAuthMode = toggleAuthMode;
+window.handleAuthSubmit = handleAuthSubmit;
 
 /* ==========================================================================
    13. ROLE SELECTION & PERMANENT AUTHENTICATION (addme.md Specification)
@@ -1712,34 +2130,315 @@ function toggleAuthMode() {
 
 async function handleAuthSubmit(e) {
   e.preventDefault();
-  const email = document.getElementById('auth-email-input').value;
+  const email = document.getElementById('auth-email-input').value.trim();
   const password = document.getElementById('auth-password-input').value;
-  const fullName = document.getElementById('auth-fullname-input')?.value || 'Het Darji';
+  const fullName = document.getElementById('auth-fullname-input')?.value.trim();
+  const confirmPassword = document.getElementById('auth-confirm-input')?.value;
   const role = AppState.selectedPreRole || 'tenant';
 
-  // Lock permanent role
-  AppState.permanentRole = role;
-  AppState.userRole = role === 'owner' ? 'Owner' : 'Tenant';
-  localStorage.setItem('nestora_permanent_role', role);
+  if (AppState.authMode === 'signup') {
+    if (!fullName) {
+      showToast('Please enter your full legal name', 'error');
+      return;
+    }
+    if (password !== confirmPassword) {
+      showToast('Passwords do not match. Please re-enter.', 'error');
+      return;
+    }
+    if (password.length < 6) {
+      showToast('Password must be at least 6 characters.', 'error');
+      return;
+    }
+  }
 
-  // Sync with Express backend
+  // Submit to Express backend & Supabase Auth
   const endpoint = AppState.authMode === 'signup' ? '/auth/register' : '/auth/login';
-  const payload = { email, password, role, fullName };
-  await apiCall(endpoint, {
+  const payload = AppState.authMode === 'signup' 
+    ? { email, password, role, fullName }
+    : { email, password };
+
+  const res = await apiCall(endpoint, {
     method: 'POST',
     body: JSON.stringify(payload)
   });
 
-  initPermanentRoleBadge();
+  let authenticatedUser = null;
+  if (res && res.user) {
+    authenticatedUser = res.user;
+  } else {
+    // Graceful offline fallback with user entered credentials
+    const fallbackName = AppState.authMode === 'signup' && fullName 
+      ? fullName 
+      : (email.split('@')[0] ? email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1) : 'Aman Singh');
+    authenticatedUser = {
+      id: `usr-${Date.now()}`,
+      email: email,
+      fullName: fallbackName,
+      role: role,
+      avatarUrl: '—Pngtree—man avatar image for profile_13001882.png'
+    };
+  }
+
+  const finalRole = (authenticatedUser.role || role || 'tenant').toLowerCase();
+  AppState.currentUser = authenticatedUser;
+  AppState.permanentRole = finalRole;
+  AppState.userRole = finalRole === 'owner' ? 'Owner' : 'Tenant';
+
+  localStorage.setItem('nestora_auth_user', JSON.stringify(authenticatedUser));
+  localStorage.setItem('nestora_permanent_role', finalRole);
+
+  updateAuthUI();
   closeAuthModal();
 
-  if (role === 'owner') {
+  if (finalRole === 'owner') {
     navigateTo('owner');
-    showToast(`Welcome ${fullName}! Permanent Owner account locked & verified.`);
+    showToast(`Greetings, ${authenticatedUser.fullName}! Permanent Owner account loaded.`, 'success');
   } else {
     navigateTo('dashboard');
-    showToast(`Welcome ${fullName}! Permanent Tenant account locked & verified.`);
+    showToast(`Greetings, ${authenticatedUser.fullName}! Signed in as verified Tenant.`, 'success');
   }
+}
+
+/* ==========================================================================
+   14. ACCOMMODATION CHECKOUT & SHORT-STAY BOOKING FLOW (Prompt Section 7)
+   ========================================================================== */
+
+function openAccommodationCheckoutModal(propertyId) {
+  const prop = (AppState.liveProperties || window.NESTORA_DATA.properties).find(p => p.id === propertyId)
+    || (AppState.liveProperties || window.NESTORA_DATA.properties)[0];
+  if (!prop) return;
+
+  AppState.checkoutProperty = prop;
+  AppState.checkoutDuration = 3;
+
+  // Step 1: Property Summary
+  const imgEl = document.getElementById('chk-prop-img');
+  if (imgEl) imgEl.src = prop.image || (prop.images && prop.images[0]) || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80';
+
+  const titleEl = document.getElementById('chk-prop-title');
+  if (titleEl) titleEl.innerText = prop.title;
+
+  const locEl = document.getElementById('chk-prop-locality');
+  if (locEl) locEl.innerText = `${prop.locality}, ${prop.city || 'Ahmedabad'}`;
+
+  const rentEl = document.getElementById('chk-prop-rent');
+  if (rentEl) rentEl.innerText = `₹${(prop.rent || 18000).toLocaleString('en-IN')}/mo`;
+
+  const typeEl = document.getElementById('chk-prop-type');
+  if (typeEl) typeEl.innerText = prop.type || '2BHK';
+
+  const areaEl = document.getElementById('chk-prop-area');
+  if (areaEl) areaEl.innerText = `${prop.area || 950} sq.ft`;
+
+  const furnEl = document.getElementById('chk-prop-furnishing');
+  if (furnEl) furnEl.innerText = prop.furnishing || 'Fully Furnished';
+
+  // Pre-fill tenant inputs
+  const nameInput = document.getElementById('chk-tenant-name');
+  if (nameInput) nameInput.value = AppState.currentUser?.fullName || 'Aman Singh';
+
+  const emailInput = document.getElementById('chk-tenant-email');
+  if (emailInput) emailInput.value = AppState.currentUser?.email || 'aman.singh@gmail.com';
+
+  const phoneInput = document.getElementById('chk-tenant-phone');
+  if (phoneInput && AppState.currentUser?.phone) phoneInput.value = AppState.currentUser.phone;
+
+  setCheckoutDuration(3);
+  recalculateCheckoutDetails();
+  goToCheckoutStep(1);
+
+  const modal = document.getElementById('checkout-modal');
+  if (modal) {
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeAccommodationCheckoutModal() {
+  const modal = document.getElementById('checkout-modal');
+  if (modal) {
+    modal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+}
+
+function goToCheckoutStep(stepNumber) {
+  AppState.checkoutStep = stepNumber;
+
+  const eyebrow = document.getElementById('chk-eyebrow');
+  if (eyebrow) eyebrow.innerText = `Accommodation Booking • Step ${stepNumber} of 6`;
+
+  const titles = {
+    1: '1. Property Summary',
+    2: '2. Rental Duration & Dates (2–4 Months Window)',
+    3: '3. Transparent Price Breakdown',
+    4: '4. True Cost of Living Assessment',
+    5: '5. Tenant Verification & Escrow Payment',
+    6: '6. Booking Confirmed & Digital Receipt'
+  };
+
+  const titleEl = document.getElementById('chk-step-title');
+  if (titleEl) titleEl.innerText = titles[stepNumber] || `Step ${stepNumber}`;
+
+  const progress = document.getElementById('chk-progress-bar');
+  if (progress) progress.style.width = `${(stepNumber / 6) * 100}%`;
+
+  for (let i = 1; i <= 6; i++) {
+    const stepDiv = document.getElementById(`chk-step-${i}`);
+    if (stepDiv) {
+      stepDiv.style.display = (i === stepNumber) ? 'block' : 'none';
+    }
+  }
+}
+
+function setCheckoutDuration(months) {
+  AppState.checkoutDuration = months;
+
+  [2, 3, 4].forEach(m => {
+    const btn = document.getElementById(`chk-dur-${m}`);
+    if (btn) {
+      if (m === months) {
+        btn.classList.add('active');
+        btn.style.borderColor = 'var(--primary)';
+        btn.style.background = '#EEF2FF';
+      } else {
+        btn.classList.remove('active');
+        btn.style.borderColor = 'var(--border-medium)';
+        btn.style.background = 'transparent';
+      }
+    }
+  });
+
+  recalculateCheckoutDetails();
+}
+
+function updateCheckoutDates() {
+  recalculateCheckoutDetails();
+}
+
+function recalculateCheckoutDetails() {
+  const prop = AppState.checkoutProperty;
+  if (!prop) return;
+
+  const rent = prop.rent || 18000;
+  const maintenance = prop.maintenance || 1200;
+  const utilities = 2500;
+  const deposit = prop.deposit || rent * 2; // Clearly separated refundable deposit
+  const months = AppState.checkoutDuration || 3;
+
+  const moveInEl = document.getElementById('chk-move-in-date');
+  const moveInStr = moveInEl?.value || '2026-10-01';
+  const moveInDate = new Date(moveInStr);
+  const moveOutDate = new Date(moveInDate);
+  moveOutDate.setMonth(moveOutDate.getMonth() + months);
+  const moveOutStr = moveOutDate.toISOString().split('T')[0];
+
+  const moveOutEl = document.getElementById('chk-move-out-date');
+  if (moveOutEl) moveOutEl.value = moveOutStr;
+
+  // Step 3: Breakdown
+  const bRent = document.getElementById('chk-break-rent');
+  if (bRent) bRent.innerText = `₹${rent.toLocaleString('en-IN')}`;
+
+  const bMaint = document.getElementById('chk-break-maint');
+  if (bMaint) bMaint.innerText = `₹${maintenance.toLocaleString('en-IN')}`;
+
+  const bUtil = document.getElementById('chk-break-util');
+  if (bUtil) bUtil.innerText = `₹${utilities.toLocaleString('en-IN')}`;
+
+  const bMonthlyTotal = document.getElementById('chk-break-monthly-total');
+  if (bMonthlyTotal) bMonthlyTotal.innerText = `₹${(rent + maintenance + utilities).toLocaleString('en-IN')}/mo`;
+
+  const bDep = document.getElementById('chk-break-deposit');
+  if (bDep) bDep.innerText = `₹${deposit.toLocaleString('en-IN')}`;
+
+  const bDueToday = document.getElementById('chk-break-due-today');
+  if (bDueToday) bDueToday.innerText = `₹${(rent + deposit).toLocaleString('en-IN')}`;
+
+  // Step 4: True Cost
+  const tRentMaint = document.getElementById('chk-true-rent-maint');
+  if (tRentMaint) tRentMaint.innerText = `₹${(rent + maintenance).toLocaleString('en-IN')}`;
+
+  const commute = 1200;
+  const groceries = 2500;
+  const tTotal = document.getElementById('chk-true-total');
+  if (tTotal) tTotal.innerText = `₹${(rent + maintenance + commute + groceries).toLocaleString('en-IN')}/mo`;
+
+  // Step 5: Pay summary
+  const pRent = document.getElementById('chk-pay-rent');
+  if (pRent) pRent.innerText = `₹${rent.toLocaleString('en-IN')}`;
+
+  const pDep = document.getElementById('chk-pay-deposit');
+  if (pDep) pDep.innerText = `₹${deposit.toLocaleString('en-IN')}`;
+
+  const pTotal = document.getElementById('chk-pay-total');
+  if (pTotal) pTotal.innerText = `₹${(rent + deposit).toLocaleString('en-IN')}`;
+}
+
+async function executeAccommodationCheckout() {
+  const prop = AppState.checkoutProperty;
+  if (!prop) return;
+
+  const tenantName = document.getElementById('chk-tenant-name')?.value || AppState.currentUser?.fullName || 'Aman Singh';
+  const tenantEmail = document.getElementById('chk-tenant-email')?.value || AppState.currentUser?.email || 'aman.singh@gmail.com';
+  const tenantPhone = document.getElementById('chk-tenant-phone')?.value || '+91 98250 12345';
+  const duration = AppState.checkoutDuration || 3;
+  const moveInDate = document.getElementById('chk-move-in-date')?.value || '2026-10-01';
+  const moveOutDate = document.getElementById('chk-move-out-date')?.value || '2026-12-31';
+
+  const payBtn = document.getElementById('chk-pay-btn');
+  if (payBtn) {
+    payBtn.disabled = true;
+    payBtn.innerText = 'Processing Escrow via Stripe... 🔒';
+  }
+
+  const rent = prop.rent || 18000;
+  const deposit = prop.deposit || rent * 2;
+  const totalDue = rent + deposit;
+
+  const res = await apiCall('/payments/accommodation-checkout', {
+    method: 'POST',
+    body: JSON.stringify({
+      propertyId: prop.id,
+      propertyTitle: prop.title,
+      tenantName,
+      tenantEmail,
+      tenantPhone,
+      durationMonths: duration,
+      moveInDate,
+      moveOutDate,
+      monthlyRent: rent,
+      securityDeposit: deposit,
+      totalPaid: totalDue
+    })
+  });
+
+  if (payBtn) {
+    payBtn.disabled = false;
+    payBtn.innerText = 'Pay via Stripe Checkout →';
+  }
+
+  // Populate receipt (Step 6)
+  const recNum = document.getElementById('chk-rec-num');
+  if (recNum) recNum.innerText = (res && res.receiptNumber) || `REC-NEST-${Math.floor(100000 + Math.random() * 900000)}`;
+
+  const recTxn = document.getElementById('chk-rec-txn');
+  if (recTxn) recTxn.innerText = (res && res.transactionId) || `txn_stripe_escrow_${Date.now()}`;
+
+  const recName = document.getElementById('chk-rec-name');
+  if (recName) recName.innerText = tenantName;
+
+  const recProp = document.getElementById('chk-rec-prop');
+  if (recProp) recProp.innerText = prop.title;
+
+  const recDates = document.getElementById('chk-rec-dates');
+  if (recDates) recDates.innerText = `${moveInDate} to ${moveOutDate} (${duration} Months Short Stay)`;
+
+  const recAmount = document.getElementById('chk-rec-amount');
+  if (recAmount) recAmount.innerText = `₹${totalDue.toLocaleString('en-IN')}`;
+
+  goToCheckoutStep(6);
+  showToast('Booking locked! 0% Brokerage Escrow Payment confirmed with landlord.', 'success');
 }
 
 /* ==========================================================================
@@ -2149,7 +2848,7 @@ async function handleSendMaintenanceChat(e) {
     // Call backend bot relay if available
     const botRes = await apiCall('/maintenance/relay-bot', {
       method: 'POST',
-      body: JSON.stringify({ message: userText, sender: 'Het Darji' })
+      body: JSON.stringify({ message: userText, sender: AppState.currentUser?.fullName || 'Resident' })
     });
     if (botRes && botRes.reply) {
       botReply = botRes.reply;

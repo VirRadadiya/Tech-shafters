@@ -5,7 +5,7 @@ import { useApp } from '../../context/AppContext';
 import { PaymentAPI } from '../../services/api';
 
 export default function StripePaymentModal() {
-  const { isStripePaymentModalOpen, setIsStripePaymentModalOpen, selectedPayment, showToast } = useApp();
+  const { isStripePaymentModalOpen, setIsStripePaymentModalOpen, selectedPayment, currentUser, showToast } = useApp();
   const [loading, setLoading] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
@@ -14,7 +14,7 @@ export default function StripePaymentModal() {
   const payment = selectedPayment || {
     id: 'pay-101',
     amount: 18500,
-    tenantName: 'Het Darji',
+    tenantName: currentUser?.fullName || 'Current Resident (You)',
     ownerName: 'Rajesh Patel',
     dueDate: 'October 5, 2026',
     breakdown: { baseRent: 16500, maintenance: 1200, waterSewage: 300, platformFee: 500 }

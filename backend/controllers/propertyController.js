@@ -181,11 +181,35 @@ exports.scheduleVisit = async (req, res) => {
 // POST /api/properties/apply
 exports.applyNow = async (req, res) => {
   try {
-    const { propertyId, applicantName, aadhaarVerified } = req.body;
+    const { propertyId, applicantName, email, phone, duration, moveInDate, aadhaarVerified } = req.body;
+
+    const newApp = {
+      id: `app-${Date.now()}`,
+      property_id: propertyId || 'prop-1',
+      applicant_name: applicantName || 'Resident',
+      applicant_email: email || '',
+      applicant_phone: phone || '',
+      duration: duration || '3 Months',
+      move_in_date: moveInDate || new Date().toISOString().split('T')[0],
+      monthly_rent: 18000,
+      deposit: 36000,
+      status: 'pending',
+      created_at: new Date().toISOString()
+    };
+
+    if (supabase) {
+      try {
+        await supabase.from('applications').insert([newApp]);
+      } catch (sbErr) {
+        console.warn('[Supabase Application Insert]:', sbErr.message);
+      }
+    }
+
     return res.json({
       success: true,
       message: 'Application & digital KYC submitted with 0% brokerage guarantee. Nestora agreement is being generated.',
-      details: { propertyId, applicantName, aadhaarVerified: !!aadhaarVerified }
+      details: { propertyId, applicantName: newApp.applicant_name, aadhaarVerified: !!aadhaarVerified },
+      application: newApp
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });

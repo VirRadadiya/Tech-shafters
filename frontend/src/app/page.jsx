@@ -36,6 +36,7 @@ import ProofVaultModal from '../components/modals/ProofVaultModal';
 import RoommateContractModal from '../components/modals/RoommateContractModal';
 import UtilityVerificationModal from '../components/modals/UtilityVerificationModal';
 import StripePaymentModal from '../components/modals/StripePaymentModal';
+import CheckoutModal from '../components/modals/CheckoutModal';
 import MaintenanceChatWidget from '../components/common/MaintenanceChatWidget';
 
 export default function Home() {
@@ -79,6 +80,7 @@ export default function Home() {
       <RoommateContractModal />
       <UtilityVerificationModal />
       <StripePaymentModal />
+      <CheckoutModal />
 
       {/* WhatsApp / Chat-Native Maintenance Relay Assistant */}
       <MaintenanceChatWidget />
