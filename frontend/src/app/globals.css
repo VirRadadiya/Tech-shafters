@@ -2470,6 +2470,11 @@ a {
 }
 
 .owner-menu-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
   padding: 10px 14px;
   border-radius: var(--radius-md);
   font-size: 0.9rem;
@@ -2479,7 +2484,14 @@ a {
   align-items: center;
   gap: 10px;
   cursor: pointer;
+  outline: none;
+  position: relative;
   transition: all var(--transition-fast);
+}
+
+.owner-menu-item:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .owner-menu-item:hover {
@@ -2490,6 +2502,33 @@ a {
 .owner-menu-item.active {
   background: var(--primary);
   color: white;
+}
+
+.owner-menu-item.active .owner-badge-counter {
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+}
+
+.owner-badge-counter {
+  margin-left: auto;
+  font-size: 0.72rem;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.owner-subpanel {
+  display: none;
+  width: 100%;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.owner-subpanel.active {
+  display: flex;
 }
 
 .owner-content-area {
@@ -2796,6 +2835,20 @@ a {
 
   .owner-container {
     grid-template-columns: 1fr;
+  }
+
+  .owner-sidebar-drawer {
+    display: none;
+  }
+
+  .owner-sidebar-drawer.mobile-open {
+    display: block;
+    position: fixed;
+    top: 75px;
+    left: 16px;
+    right: 16px;
+    z-index: 999;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.25);
   }
 }
 

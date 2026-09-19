@@ -4,12 +4,37 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { RoommateAPI } from '../../services/api';
 
+function getStableRoommateMatch(r) {
+  if (!r) return 85;
+  const raw = typeof r.compatibility === 'number' ? r.compatibility : parseInt(r.compatibility, 10);
+  if (!isNaN(raw) && raw >= 61 && raw <= 98) {
+    return raw;
+  }
+  // Deterministic hash based on ID and Name (no Math.random on render)
+  const str = String(r.id || '') + String(r.name || '');
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return 61 + (Math.abs(hash) % 38); // Strictly 61% to 98%
+}
+
 export default function RoommatesView() {
   const { openRoommateProfile, triggerMatchCelebration, showToast } = useApp();
   const [roommates, setRoommates] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [viewMode, setViewMode] = useState('swiper'); // 'swiper' | 'grid'
   const [swipeFeedback, setSwipeFeedback] = useState(null); // 'match' | 'pass'
+  const [acceptedRoommates, setAcceptedRoommates] = useState(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const s = localStorage.getItem('nestera_accepted_roommates') || localStorage.getItem('nestora_accepted_roommates');
+      return s ? JSON.parse(s) : [];
+    } catch (e) {
+      return [];
+    }
+  });
 
   useEffect(() => {
     RoommateAPI.getRoommates().then(res => {
@@ -18,6 +43,23 @@ export default function RoommatesView() {
       }
     });
   }, []);
+
+  const handleConnect = (mate) => {
+    if (!mate) return;
+    const score = getStableRoommateMatch(mate);
+    if (!acceptedRoommates.includes(mate.id)) {
+      const next = [...acceptedRoommates, mate.id];
+      setAcceptedRoommates(next);
+      try {
+        localStorage.setItem('nestera_accepted_roommates', JSON.stringify(next));
+      } catch (e) {}
+    }
+    showToast(`🎉 It's a ${score}% Match with ${mate.name}! Status: Connected / Accepted.`, 'success');
+    triggerMatchCelebration({
+      ...mate,
+      compatibility: score
+    });
+  };
 
   const handleSwipe = async (action) => {
     if (currentIndex >= roommates.length) return;
@@ -33,7 +75,7 @@ export default function RoommatesView() {
     }
 
     if (action === 'match') {
-      triggerMatchCelebration(current);
+      handleConnect(current);
     } else {
       showToast(`Passed profile: ${current.name}`);
     }
@@ -42,6 +84,8 @@ export default function RoommatesView() {
   };
 
   const currentRoommate = roommates[currentIndex];
+  const isCurrentAccepted = currentRoommate && acceptedRoommates.includes(currentRoommate.id);
+  const currentScore = currentRoommate ? getStableRoommateMatch(currentRoommate) : 85;
 
   return (
     <section className="view-panel active" id="view-roommates">
@@ -87,8 +131,14 @@ export default function RoommatesView() {
                     className="roommate-swipe-img"
                   />
                   <div className="swipe-compat-pill">
-                    ⚡ {currentRoommate.compatibility}% Compatibility
+                    ⚡ {currentScore}% Compatibility
                   </div>
+
+                  {isCurrentAccepted && (
+                    <div className="badge badge-emerald" style={{ position: 'absolute', bottom: '14px', left: '14px', zIndex: 10, fontSize: '0.85rem' }}>
+                      ✓ Connected / Accepted
+                    </div>
+                  )}
 
                   {swipeFeedback && (
                     <div className={`swipe-overlay-stamp ${swipeFeedback}`}>
@@ -103,7 +153,10 @@ export default function RoommatesView() {
                     <h3 style={{ fontSize: '1.4rem', fontWeight: 800 }}>
                       {currentRoommate.name}, {currentRoommate.age}
                     </h3>
-                    <span className="badge badge-emerald">Budget: {currentRoommate.budget}</span>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      {isCurrentAccepted && <span className="badge badge-emerald">✓ Connected</span>}
+                      <span className="badge badge-emerald">Budget: {currentRoommate.budget}</span>
+                    </div>
                   </div>
 
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '4px' }}>
@@ -133,7 +186,7 @@ export default function RoommatesView() {
                     </button>
                     <button
                       className="swipe-action-btn btn-info"
-                      onClick={() => openRoommateProfile(currentRoommate)}
+                      onClick={() => openRoommateProfile({ ...currentRoommate, compatibility: currentScore })}
                       title="View full profile"
                     >
                       ℹ
@@ -141,7 +194,7 @@ export default function RoommatesView() {
                     <button
                       className="swipe-action-btn btn-match"
                       onClick={() => handleSwipe('match')}
-                      title="Match"
+                      title={isCurrentAccepted ? 'Already Connected' : 'Match & Connect'}
                     >
                       ♥
                     </button>
@@ -153,7 +206,7 @@ export default function RoommatesView() {
                 <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🎉</div>
                 <h3 style={{ fontSize: '1.4rem', fontWeight: 800 }}>You've reviewed all roommate profiles!</h3>
                 <p style={{ color: 'var(--text-secondary)', marginTop: '8px', fontSize: '0.95rem' }}>
-                  New compatible students & young professionals join Nestora daily.
+                  New compatible students & young professionals join Nestera daily.
                 </p>
                 <button
                   className="btn btn-primary"
@@ -170,46 +223,74 @@ export default function RoommatesView() {
         {/* GRID MODE */}
         {viewMode === 'grid' && (
           <div className="roommates-grid">
-            {roommates.map(r => (
-              <div key={r.id} className="roommate-grid-card">
-                <div className="grid-card-img-wrap">
-                  <img src={r.avatar} alt={r.name} className="grid-card-img" />
-                  <span className="swipe-compat-pill" style={{ top: '12px', right: '12px', bottom: 'auto' }}>
-                    {r.compatibility}% Match
-                  </span>
-                </div>
-                <div className="grid-card-body">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>{r.name}, {r.age}</h3>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary)' }}>{r.budget}</span>
+            {roommates.map(r => {
+              const score = getStableRoommateMatch(r);
+              const isAccepted = acceptedRoommates.includes(r.id);
+
+              return (
+                <div key={r.id} className="roommate-grid-card">
+                  <div className="grid-card-img-wrap">
+                    <img src={r.avatar} alt={r.name} className="grid-card-img" />
+                    <span className="swipe-compat-pill" style={{ top: '12px', right: '12px', bottom: 'auto' }}>
+                      ⚡ {score}% Match
+                    </span>
+                    {isAccepted && (
+                      <span className="badge badge-emerald" style={{ position: 'absolute', bottom: '10px', left: '12px', zIndex: 5 }}>
+                        ✓ Connected
+                      </span>
+                    )}
                   </div>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                    {r.institution}
-                  </p>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '10px 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                    {r.about}
-                  </p>
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                    <button
-                      className="btn btn-sm btn-outline"
-                      style={{ flex: 1 }}
-                      onClick={() => openRoommateProfile(r)}
-                    >
-                      View Profile
-                    </button>
-                    <button
-                      className="btn btn-sm btn-primary"
-                      onClick={() => triggerMatchCelebration(r)}
-                    >
-                      Connect
-                    </button>
+                  <div className="grid-card-body">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>{r.name}, {r.age}</h3>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary)' }}>{r.budget}</span>
+                    </div>
+                    {isAccepted && (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--accent-emerald-dark)', fontWeight: 800, marginTop: '2px' }}>
+                        Status: ✓ Connected / Accepted
+                      </div>
+                    )}
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                      {r.institution}
+                    </p>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '10px 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      {r.about}
+                    </p>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                      <button
+                        className="btn btn-sm btn-outline"
+                        style={{ flex: 1 }}
+                        onClick={() => openRoommateProfile({ ...r, compatibility: score })}
+                      >
+                        View Profile
+                      </button>
+                      {isAccepted ? (
+                        <button
+                          className="btn btn-sm"
+                          style={{ flex: 1, background: '#ECFDF5', color: '#065F46', border: '1.5px solid #A7F3D0', fontWeight: 700, cursor: 'default' }}
+                          disabled
+                          title="Roommate connected and accepted"
+                        >
+                          ✓ Connected
+                        </button>
+                      ) : (
+                        <button
+                          className="btn btn-sm btn-primary"
+                          style={{ flex: 1 }}
+                          onClick={() => handleConnect(r)}
+                        >
+                          Connect
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
     </section>
   );
 }
+

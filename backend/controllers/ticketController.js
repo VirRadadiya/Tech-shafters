@@ -82,6 +82,21 @@ exports.createTicket = async (req, res) => {
       images: []
     };
 
+    const ownerNotif = {
+      id: `notif-maint-${Date.now()}`,
+      user_id: 'usr-owner-1',
+      type: 'maintenance',
+      title: `New Maintenance Ticket: ${newTicket.title}`,
+      message: `${req.body.tenant || 'Aman Singh'} at ${newTicket.location} reported: "${newTicket.description}". Priority: ${newTicket.urgency}.`,
+      time: 'Just now',
+      read: false,
+      relatedId: newTicket.id,
+      actionTarget: `maintenance:${newTicket.id}`,
+      actionText: 'View Ticket',
+      tenant: req.body.tenant || 'Aman Singh',
+      property: newTicket.location
+    };
+
     if (supabase) {
       try {
         await supabase.from('maintenance_tickets').insert([{
@@ -98,6 +113,19 @@ exports.createTicket = async (req, res) => {
           description: newTicket.description,
           location: newTicket.location,
           images: newTicket.images
+        }]);
+
+        await supabase.from('notifications').insert([{
+          id: ownerNotif.id,
+          user_id: ownerNotif.user_id,
+          type: ownerNotif.type,
+          title: ownerNotif.title,
+          message: ownerNotif.message,
+          time: ownerNotif.time,
+          read: false,
+          related_id: ownerNotif.relatedId,
+          action_target: ownerNotif.actionTarget,
+          action_text: ownerNotif.actionText
         }]);
       } catch (sbErr) {
         console.warn('[Supabase Ticket Insert Error]:', sbErr.message);

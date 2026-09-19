@@ -2,8 +2,8 @@ import './globals.css';
 import { AppProvider } from '../context/AppContext';
 
 export const metadata = {
-  title: 'Nestora — Next-Gen PropTech & Transparent Living Platform',
-  description: 'Nestora is a next-generation PropTech platform helping young adults and first-time renters find, compare, lease, share, and manage residential and commercial spaces with radical cost transparency.',
+  title: 'Nestera — Next-Gen PropTech & Transparent Living Platform',
+  description: 'Nestera is a next-generation PropTech platform helping young adults and first-time renters find, compare, lease, share, and manage residential and commercial spaces with radical cost transparency.',
   themeColor: '#4F46E5',
 };
 

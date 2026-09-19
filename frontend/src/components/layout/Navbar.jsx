@@ -33,7 +33,7 @@ export default function Navbar() {
             </svg>
           </div>
           <div className="brand-name">
-            Nestora
+            Nestera
             <span className="brand-tag">Transparent</span>
           </div>
         </div>

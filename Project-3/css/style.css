@@ -2470,16 +2470,22 @@ a {
 }
 
 .owner-menu-item {
-  padding: 10px 14px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 11px 14px;
   border-radius: var(--radius-md);
+  font-family: inherit;
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-secondary);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
   cursor: pointer;
   transition: all var(--transition-fast);
+  text-align: left;
 }
 
 .owner-menu-item:hover {
@@ -2487,9 +2493,81 @@ a {
   color: var(--text-primary);
 }
 
+.owner-menu-item:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 .owner-menu-item.active {
   background: var(--primary);
   color: white;
+}
+
+.owner-menu-item.active .owner-badge-counter {
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+}
+
+.owner-badge-counter {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 12px;
+  background: var(--bg-surface-secondary);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.owner-badge-counter.badge-rose {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+
+.owner-badge-counter.badge-amber {
+  background: #FEF3C7;
+  color: #D97706;
+}
+
+.owner-badge-counter.badge-emerald {
+  background: #D1FAE5;
+  color: #059669;
+}
+
+.owner-subpanel {
+  display: none;
+  flex-direction: column;
+  gap: 24px;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.owner-subpanel.active {
+  display: flex;
+}
+
+.owner-mobile-toggle-btn {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 960px) {
+  .owner-container {
+    grid-template-columns: 1fr;
+  }
+  .owner-mobile-toggle-btn {
+    display: inline-flex !important;
+  }
+  .owner-sidebar {
+    display: none;
+    margin-bottom: 20px;
+  }
+  .owner-sidebar.mobile-open {
+    display: block;
+    animation: fadeIn 0.2s ease-in-out;
+  }
 }
 
 .owner-content-area {

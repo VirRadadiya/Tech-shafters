@@ -4,11 +4,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="author" content="Nestora PropTech" />
+  <meta name="author" content="Nestera PropTech" />
   <meta name="description"
-    content="Nestora is a next-generation PropTech platform helping young adults and first-time renters find, compare, lease, share, and manage residential and commercial spaces with radical cost transparency." />
+    content="Nestera is a next-generation PropTech platform helping young adults and first-time renters find, compare, lease, share, and manage residential and commercial spaces with radical cost transparency." />
   <meta name="theme-color" content="#4F46E5" />
-  <title>Nestora — Next-Gen PropTech & Transparent Living Platform</title>
+  <title>Nestera — Next-Gen PropTech &amp; Transparent Living Platform</title>
 
   <!-- Google Fonts: Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -38,8 +38,7 @@
           </svg>
         </div>
         <div class="brand-name">
-          Nestora
-
+          Nestera
         </div>
       </div>
 
@@ -889,132 +888,543 @@
     </section>
 
     <!-- ----------------------------------------------------------------------
-         VIEW 8: OWNER / LANDLORD DASHBOARD ("NESTORA HOST")
+         VIEW 8: OWNER / LANDLORD DASHBOARD ("NEST不开A HOST" / NESTERA HOST)
          ---------------------------------------------------------------------- -->
     <section class="view-panel" id="view-owner">
       <div class="container owner-layout">
+        <!-- Mobile Sidebar Toggle -->
+        <button class="btn btn-secondary btn-sm owner-mobile-toggle-btn" id="owner-mobile-sidebar-toggle" onclick="toggleOwnerMobileSidebar()" aria-label="Toggle owner navigation menu">
+          <span>☰</span> <span>Owner Menu</span>
+        </button>
+
         <div class="owner-container">
           <!-- Sidebar -->
-          <aside class="owner-sidebar">
-            <ul class="owner-menu">
-              <li class="owner-menu-item active">📊 Dashboard</li>
-              <li class="owner-menu-item">🏢 Properties (8)</li>
-              <li class="owner-menu-item">📝 Applications (5)</li>
-              <li class="owner-menu-item">👥 Tenants</li>
-              <li class="owner-menu-item">🔧 Maintenance (3)</li>
-              <li class="owner-menu-item">💳 Revenue & Payouts</li>
-              <li class="owner-menu-item">⚙️ Settings</li>
-            </ul>
+          <aside class="owner-sidebar" id="owner-sidebar-drawer" role="navigation" aria-label="Owner dashboard navigation">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:0 6px;">
+              <span style="font-size:0.75rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Owner Workspace</span>
+              <button class="btn btn-sm btn-outline" onclick="toggleOwnerMobileSidebar(false)" style="display:none; padding:2px 8px;" id="owner-sidebar-close-btn" aria-label="Close sidebar">✕</button>
+            </div>
+            <div class="owner-menu" role="tablist" aria-orientation="vertical">
+              <button class="owner-menu-item active" id="owner-tab-dashboard" role="tab" aria-selected="true" aria-controls="owner-panel-dashboard" onclick="switchOwnerTab('dashboard')">
+                <span>📊 Dashboard</span>
+              </button>
+              <button class="owner-menu-item" id="owner-tab-properties" role="tab" aria-selected="false" aria-controls="owner-panel-properties" onclick="switchOwnerTab('properties')">
+                <span>🏢 Properties</span>
+                <span class="owner-badge-counter" id="owner-badge-props">8</span>
+              </button>
+              <button class="owner-menu-item" id="owner-tab-applications" role="tab" aria-selected="false" aria-controls="owner-panel-applications" onclick="switchOwnerTab('applications')">
+                <span>📝 Applications</span>
+                <span class="owner-badge-counter badge-amber" id="owner-badge-apps">3</span>
+              </button>
+              <button class="owner-menu-item" id="owner-tab-maintenance" role="tab" aria-selected="false" aria-controls="owner-panel-maintenance" onclick="switchOwnerTab('maintenance')">
+                <span>🔧 Maintenance</span>
+                <span class="owner-badge-counter badge-rose" id="owner-badge-maint">🔴 3</span>
+              </button>
+              <button class="owner-menu-item" id="owner-tab-payments" role="tab" aria-selected="false" aria-controls="owner-panel-payments" onclick="switchOwnerTab('payments')">
+                <span>💳 Payments</span>
+              </button>
+              <button class="owner-menu-item" id="owner-tab-messages" role="tab" aria-selected="false" aria-controls="owner-panel-messages" onclick="switchOwnerTab('messages')">
+                <span>💬 Messages</span>
+                <span class="owner-badge-counter badge-primary" id="owner-badge-msgs">2</span>
+              </button>
+              <button class="owner-menu-item" id="owner-tab-notifications" role="tab" aria-selected="false" aria-controls="owner-panel-notifications" onclick="switchOwnerTab('notifications')">
+                <span>🔔 Notifications</span>
+                <span class="owner-badge-counter badge-amber" id="owner-badge-notifs">3</span>
+              </button>
+              <button class="owner-menu-item" id="owner-tab-analytics" role="tab" aria-selected="false" aria-controls="owner-panel-analytics" onclick="switchOwnerTab('analytics')">
+                <span>📈 Analytics</span>
+              </button>
+              <button class="owner-menu-item" id="owner-tab-profile" role="tab" aria-selected="false" aria-controls="owner-panel-profile" onclick="switchOwnerTab('profile')">
+                <span>👤 Profile</span>
+              </button>
+              <button class="owner-menu-item" id="owner-tab-settings" role="tab" aria-selected="false" aria-controls="owner-panel-settings" onclick="switchOwnerTab('settings')">
+                <span>⚙️ Settings</span>
+              </button>
+              <div style="height:1px; background:var(--border-subtle); margin:6px 0;"></div>
+              <button class="owner-menu-item" style="color:var(--accent-rose);" onclick="handleLogout()" aria-label="Sign out of owner dashboard">
+                <span>🚪 Sign Out</span>
+              </button>
+            </div>
           </aside>
 
           <!-- Main Content Area -->
           <div class="owner-content-area">
-            <div class="owner-header-row">
-              <div>
-                <h2 id="owner-greeting-heading">Greetings, Landlord Partner 👋</h2>
-                <p style="color:var(--text-secondary); font-size:0.9rem;">Manage units across Ahmedabad and Gandhinagar
-                  with automated rent collection.</p>
-              </div>
-              <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                <button class="btn btn-secondary" onclick="openUtilityVerificationModal()">
-                  📄 Utility OCR Verify
-                </button>
-                <button class="btn btn-secondary" onclick="openProofVaultModal()">
-                  📦 Proof Vault Handover
-                </button>
-                <button class="btn btn-primary" onclick="openAddPropertyModal()">
-                  + Add Property
-                </button>
-              </div>
-            </div>
 
-            <!-- KPI Cards -->
-            <div class="dash-kpi-grid">
-              <div class="kpi-card">
-                <div class="kpi-label">Active Properties</div>
-                <div class="kpi-number">8</div>
-                <div class="kpi-subtext">All verified by Nestora</div>
-              </div>
-
-              <div class="kpi-card">
-                <div class="kpi-label">Occupied Units</div>
-                <div class="kpi-number">7</div>
-                <div class="kpi-subtext">87.5% Occupancy Rate</div>
-              </div>
-
-              <div class="kpi-card">
-                <div class="kpi-label">Monthly Gross Revenue</div>
-                <div class="kpi-number">₹1.42L</div>
-                <div class="kpi-subtext">94% On-time UPI collections</div>
-              </div>
-
-              <div class="kpi-card">
-                <div class="kpi-label">Pending Maintenance</div>
-                <div class="kpi-number" style="color:var(--accent-amber);">3</div>
-                <div class="kpi-subtext">Assigned to certified pros</div>
-              </div>
-            </div>
-
-            <!-- Tenant Management Table -->
-            <div class="owner-table-card">
-              <div
-                style="padding:18px 20px; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="font-size:1.15rem; font-weight:800;">Managed Living Units &amp; Active/Found Status</h3>
-                <span class="badge badge-verified">Direct Escrow Active</span>
-              </div>
-              <div class="table-responsive">
-                <table class="nestora-table">
-                  <thead>
-                    <tr>
-                      <th>Property &amp; Unit</th>
-                      <th>Tenant</th>
-                      <th>Rent / Mo</th>
-                      <th>Listing Status (Active / Found)</th>
-                      <th>Payment Status</th>
-                      <th>Verification</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="owner-tenant-table-body">
-                    <!-- Dynamically populated from data.js -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- Incoming Rental Applications Section -->
-            <div class="owner-table-card" style="margin-top: 24px;">
-              <div
-                style="padding:18px 20px; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <!-- 1. SUBPANEL: DASHBOARD (Overview) -->
+            <div class="owner-subpanel active" id="owner-panel-dashboard" role="tabpanel" aria-labelledby="owner-tab-dashboard">
+              <div class="owner-header-row">
                 <div>
-                  <h3 style="font-size:1.15rem; font-weight:800; margin:0 0 4px;">Incoming Rental Applications</h3>
-                  <p style="font-size:0.8rem; color:var(--text-secondary); margin:0;">
-                    Accept, reject, or request information with instant Supabase database updates.
+                  <h2 id="owner-greeting-heading">Greetings, Landlord Partner 👋</h2>
+                  <p style="color:var(--text-secondary); font-size:0.9rem;">
+                    Portfolio overview, automated rent escrow, and live maintenance updates across Ahmedabad and Gandhinagar.
                   </p>
                 </div>
-                <button class="btn btn-secondary btn-sm" onclick="loadOwnerApplications()">🔄 Refresh</button>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                  <button class="btn btn-secondary" onclick="openUtilityVerificationModal()">
+                    📄 Utility OCR Verify
+                  </button>
+                  <button class="btn btn-secondary" onclick="openProofVaultModal()">
+                    📦 Proof Vault Handover
+                  </button>
+                  <button class="btn btn-primary" onclick="openAddPropertyModal()">
+                    + Add Property
+                  </button>
+                </div>
               </div>
-              <div id="owner-applications-list" style="padding: 18px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px;">
-                <!-- Populated dynamically via loadOwnerApplications() -->
+
+              <!-- KPI Cards -->
+              <div class="dash-kpi-grid">
+                <div class="kpi-card" onclick="switchOwnerTab('properties')" style="cursor:pointer;" title="View all properties">
+                  <div class="kpi-label">Active Properties</div>
+                  <div class="kpi-number" id="owner-kpi-active-props">8</div>
+                  <div class="kpi-subtext">All verified by Nestera</div>
+                </div>
+
+                <div class="kpi-card" onclick="switchOwnerTab('properties')" style="cursor:pointer;" title="View occupancy status">
+                  <div class="kpi-label">Occupied Units</div>
+                  <div class="kpi-number" id="owner-kpi-occupied-units">7</div>
+                  <div class="kpi-subtext">87.5% Occupancy Rate</div>
+                </div>
+
+                <div class="kpi-card" onclick="switchOwnerTab('payments')" style="cursor:pointer;" title="View payments and escrow">
+                  <div class="kpi-label">Monthly Gross Revenue</div>
+                  <div class="kpi-number" id="owner-kpi-revenue">₹1.42L</div>
+                  <div class="kpi-subtext">94% On-time UPI collections</div>
+                </div>
+
+                <div class="kpi-card" onclick="switchOwnerTab('maintenance')" style="cursor:pointer;" title="View maintenance tickets">
+                  <div class="kpi-label">Pending Maintenance</div>
+                  <div class="kpi-number" id="owner-kpi-maint" style="color:var(--accent-amber);">3</div>
+                  <div class="kpi-subtext">Assigned to certified pros</div>
+                </div>
+              </div>
+
+              <!-- Quick Notification Banner if Unread -->
+              <div class="owner-table-card" id="owner-dash-urgent-banner" style="padding:16px 20px; background:linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%); border-left:4px solid var(--accent-amber);">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <span style="font-size:1.5rem;">🔧</span>
+                    <div>
+                      <strong style="color:#92400E; font-size:0.95rem;">Pending Tenant Maintenance Requests Awaiting Action</strong>
+                      <p style="margin:2px 0 0; font-size:0.82rem; color:#B45309;" id="owner-dash-urgent-text">
+                        3 tickets logged via Tenant Hub &amp; Relay Bot require review or technician scheduling.
+                      </p>
+                    </div>
+                  </div>
+                  <button class="btn btn-sm btn-primary" onclick="switchOwnerTab('maintenance')">Review Tickets →</button>
+                </div>
+              </div>
+
+              <!-- Quick Properties Preview Table -->
+              <div class="owner-table-card">
+                <div style="padding:18px 20px; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+                  <h3 style="font-size:1.15rem; font-weight:800;">Managed Living Units &amp; Active/Found Status</h3>
+                  <button class="btn btn-sm btn-outline" onclick="switchOwnerTab('properties')">View All (8) →</button>
+                </div>
+                <div class="table-responsive">
+                  <table class="nestora-table">
+                    <thead>
+                      <tr>
+                        <th>Property &amp; Unit</th>
+                        <th>Tenant</th>
+                        <th>Rent / Mo</th>
+                        <th>Listing Status</th>
+                        <th>Payment</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="owner-tenant-table-body">
+                      <!-- Populated via renderOwnerTable() -->
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
-            <!-- Maintenance Relay Tickets Section -->
-            <div class="owner-table-card" style="margin-top: 24px;">
-              <div
-                style="padding:18px 20px; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <!-- 2. SUBPANEL: PROPERTIES -->
+            <div class="owner-subpanel" id="owner-panel-properties" role="tabpanel" aria-labelledby="owner-tab-properties">
+              <div class="owner-header-row">
                 <div>
-                  <h3 style="font-size:1.15rem; font-weight:800; margin:0 0 4px;">Maintenance Relay Bot Tickets</h3>
-                  <p style="font-size:0.8rem; color:var(--text-secondary); margin:0;">
-                    Dispatched tickets from tenant chat bot with 48h resolution tracking.
+                  <h2>Properties Portfolio</h2>
+                  <p style="color:var(--text-secondary); font-size:0.9rem;">
+                    Manage your active student rentals, toggle unit availability (Active vs Found), and view verified lease titles.
                   </p>
                 </div>
-                <span class="badge badge-emerald">WhatsApp &amp; Twilio Sync Active</span>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                  <button class="btn btn-secondary" onclick="openUtilityVerificationModal()">
+                    📄 OCR Title Verify
+                  </button>
+                  <button class="btn btn-primary" onclick="openAddPropertyModal()">
+                    + Add New Property
+                  </button>
+                </div>
               </div>
-              <div id="owner-maintenance-list" style="padding: 18px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px;">
-                <!-- Populated dynamically via renderOwnerMaintenanceTickets() -->
+
+              <div class="owner-table-card">
+                <div style="padding:16px 20px; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                  <div style="display:flex; gap:8px;">
+                    <span class="badge badge-verified">Direct Supabase Sync</span>
+                    <span class="badge badge-emerald">Escrow Protected</span>
+                  </div>
+                  <span style="font-size:0.85rem; color:var(--text-muted);">
+                    Click listing status to toggle public visibility.
+                  </span>
+                </div>
+                <div class="table-responsive">
+                  <table class="nestora-table">
+                    <thead>
+                      <tr>
+                        <th>Property &amp; Unit</th>
+                        <th>Tenant</th>
+                        <th>Rent / Mo</th>
+                        <th>Listing Status (Active / Found)</th>
+                        <th>Payment Status</th>
+                        <th>Verification</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="owner-tenant-table-body-full">
+                      <!-- Dynamically synced via renderOwnerTable() -->
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
+
+            <!-- 3. SUBPANEL: APPLICATIONS -->
+            <div class="owner-subpanel" id="owner-panel-applications" role="tabpanel" aria-labelledby="owner-tab-applications">
+              <div class="owner-header-row">
+                <div>
+                  <h2>Rental Applications</h2>
+                  <p style="color:var(--text-secondary); font-size:0.9rem;">
+                    Review student applicant credentials, university affiliations, and desired lease duration (2–4 months).
+                  </p>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="loadOwnerApplications()">🔄 Refresh Applications</button>
+              </div>
+
+              <div class="owner-table-card">
+                <div style="padding:18px 20px; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+                  <h3 style="font-size:1.15rem; font-weight:800; margin:0;">Incoming Tenant Applications</h3>
+                  <span class="badge badge-primary">Direct KYC &amp; College Verification</span>
+                </div>
+                <div id="owner-applications-list" style="padding: 18px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px;">
+                  <!-- Populated dynamically via loadOwnerApplications() -->
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. SUBPANEL: MAINTENANCE -->
+            <div class="owner-subpanel" id="owner-panel-maintenance" role="tabpanel" aria-labelledby="owner-tab-maintenance">
+              <div class="owner-header-row">
+                <div>
+                  <h2>Maintenance &amp; Repairs Hub</h2>
+                  <p style="color:var(--text-secondary); font-size:0.9rem;">
+                    Direct relay of tenant reported issues, WhatsApp bot dispatches, and SLA resolution tracking.
+                  </p>
+                </div>
+                <span class="badge badge-emerald" style="padding:6px 12px; font-size:0.82rem;">
+                  WhatsApp &amp; Twilio Sync Active
+                </span>
+              </div>
+
+              <div class="owner-table-card">
+                <div style="padding:18px 20px; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                  <div>
+                    <h3 style="font-size:1.15rem; font-weight:800; margin:0 0 4px;">Active Tenant Work Orders</h3>
+                    <p style="font-size:0.8rem; color:var(--text-secondary); margin:0;">
+                      Click "View Full Ticket" to inspect photos, description, and update resolution status.
+                    </p>
+                  </div>
+                  <button class="btn btn-sm btn-outline" onclick="renderOwnerMaintenanceTickets()">🔄 Refresh Tickets</button>
+                </div>
+                <div id="owner-maintenance-list" style="padding: 18px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px;">
+                  <!-- Populated dynamically via renderOwnerMaintenanceTickets() -->
+                </div>
+              </div>
+            </div>
+
+            <!-- 5. SUBPANEL: PAYMENTS -->
+            <div class="owner-subpanel" id="owner-panel-payments" role="tabpanel" aria-labelledby="owner-tab-payments">
+              <div class="owner-header-row">
+                <div>
+                  <h2>Payments, Escrow &amp; Payouts</h2>
+                  <p style="color:var(--text-secondary); font-size:0.9rem;">
+                    Automated rent payouts, Stripe escrow releases, and compliant GST rental invoices.
+                  </p>
+                </div>
+                <button class="btn btn-primary" onclick="showToast('Initiated bank payout verification with ICICI Bank gateway.')">
+                  ⚡ Request Instant UPI Payout
+                </button>
+              </div>
+
+              <div class="dash-kpi-grid">
+                <div class="kpi-card">
+                  <div class="kpi-label">Gross Rent Collected (Sept)</div>
+                  <div class="kpi-number" style="color:var(--primary);">₹1,42,000</div>
+                  <div class="kpi-subtext">Direct to Nestera Escrow Vault</div>
+                </div>
+                <div class="kpi-card">
+                  <div class="kpi-label">Net Disbursed to Bank</div>
+                  <div class="kpi-number" style="color:var(--accent-emerald-dark);">₹1,38,500</div>
+                  <div class="kpi-subtext">Automated direct bank payout</div>
+                </div>
+                <div class="kpi-card">
+                  <div class="kpi-label">Refundable Tenant Deposits Held</div>
+                  <div class="kpi-number">₹2,84,000</div>
+                  <div class="kpi-subtext">Protected in escrow vault</div>
+                </div>
+              </div>
+
+              <div class="owner-table-card">
+                <div style="padding:18px 20px; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+                  <h3 style="font-size:1.15rem; font-weight:800;">Recent Rental Collections &amp; GST Invoices</h3>
+                  <span class="badge badge-verified">HDFC Bank Verified Account</span>
+                </div>
+                <div class="table-responsive">
+                  <table class="nestora-table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Property</th>
+                        <th>Tenant</th>
+                        <th>Amount</th>
+                        <th>Channel</th>
+                        <th>Status</th>
+                        <th>Invoice</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>15 Sep 2026</td>
+                        <td>Palm Grove Luxury Living - 402</td>
+                        <td>Aman Singh</td>
+                        <td><strong>₹18,000</strong></td>
+                        <td>UPI Autopay</td>
+                        <td><span class="badge badge-verified">Settled ✓</span></td>
+                        <td><button class="btn btn-sm btn-outline" onclick="showToast('GST Rental Invoice #INV-2026-091 downloaded!')">PDF</button></td>
+                      </tr>
+                      <tr>
+                        <td>10 Sep 2026</td>
+                        <td>Bodakdev Minimal Studio - 201</td>
+                        <td>Siddharth Malhotra</td>
+                        <td><strong>₹22,000</strong></td>
+                        <td>Stripe Escrow</td>
+                        <td><span class="badge badge-verified">Settled ✓</span></td>
+                        <td><button class="btn btn-sm btn-outline" onclick="showToast('GST Rental Invoice #INV-2026-092 downloaded!')">PDF</button></td>
+                      </tr>
+                      <tr>
+                        <td>05 Sep 2026</td>
+                        <td>Campus Edge Studio - 301</td>
+                        <td>Arjun Mehta</td>
+                        <td><strong>₹14,500</strong></td>
+                        <td>Net Banking</td>
+                        <td><span class="badge badge-verified">Settled ✓</span></td>
+                        <td><button class="btn btn-sm btn-outline" onclick="showToast('GST Rental Invoice #INV-2026-093 downloaded!')">PDF</button></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- 6. SUBPANEL: MESSAGES -->
+            <div class="owner-subpanel" id="owner-panel-messages" role="tabpanel" aria-labelledby="owner-tab-messages">
+              <div class="owner-header-row">
+                <div>
+                  <h2>Tenant Messages &amp; Relay Threads</h2>
+                  <p style="color:var(--text-secondary); font-size:0.9rem;">
+                    Communicate with active tenants and monitor automated WhatsApp maintenance dispatches.
+                  </p>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="toggleMaintenanceChat(true)">💬 Open Live Relay Bot</button>
+              </div>
+
+              <div class="owner-table-card" style="padding:20px;">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px;">
+                  <div style="background:var(--bg-surface-secondary); padding:16px; border-radius:12px; border:1px solid var(--border-subtle);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                      <strong>Aman Singh (Palm Grove 402)</strong>
+                      <span class="badge badge-primary">2h ago</span>
+                    </div>
+                    <p style="font-size:0.85rem; color:var(--text-secondary); margin:0 0 12px;">
+                      "Hi Landlord, technician Ramesh Kumar came and checked the geyser. Element ordered, will finish tomorrow morning."
+                    </p>
+                    <button class="btn btn-sm btn-primary" onclick="showToast('Opened conversation with Aman Singh')">Reply</button>
+                  </div>
+
+                  <div style="background:var(--bg-surface-secondary); padding:16px; border-radius:12px; border:1px solid var(--border-subtle);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                      <strong>Siddharth Malhotra (Bodakdev 201)</strong>
+                      <span class="badge badge-amber">Yesterday</span>
+                    </div>
+                    <p style="font-size:0.85rem; color:var(--text-secondary); margin:0 0 12px;">
+                      "Thank you for approving the lease agreement! When can I collect the physical keys from the building guard?"
+                    </p>
+                    <button class="btn btn-sm btn-primary" onclick="showToast('Opened conversation with Siddharth Malhotra')">Reply</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 7. SUBPANEL: NOTIFICATIONS -->
+            <div class="owner-subpanel" id="owner-panel-notifications" role="tabpanel" aria-labelledby="owner-tab-notifications">
+              <div class="owner-header-row">
+                <div>
+                  <h2>Owner Notifications &amp; Alerts</h2>
+                  <p style="color:var(--text-secondary); font-size:0.9rem;">
+                    Real-time notifications for tenant maintenance requests, applications, and rent escrow releases.
+                  </p>
+                </div>
+                <button class="btn btn-sm btn-secondary" onclick="markAllNotificationsRead()">Mark All Read</button>
+              </div>
+
+              <div class="owner-table-card">
+                <div style="padding:16px 20px; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+                  <h3 style="font-size:1.1rem; font-weight:800; margin:0;">Inbox</h3>
+                  <span class="badge badge-rose" id="owner-notif-inbox-badge">3 Unread Alerts</span>
+                </div>
+                <div id="owner-notifications-full-list" style="padding:16px; display:flex; flex-direction:column; gap:12px;">
+                  <!-- Populated dynamically via renderOwnerNotificationsList() -->
+                </div>
+              </div>
+            </div>
+
+            <!-- 8. SUBPANEL: ANALYTICS -->
+            <div class="owner-subpanel" id="owner-panel-analytics" role="tabpanel" aria-labelledby="owner-tab-analytics">
+              <div class="owner-header-row">
+                <div>
+                  <h2>Portfolio Yield &amp; Occupancy Analytics</h2>
+                  <p style="color:var(--text-secondary); font-size:0.9rem;">
+                    Key performance metrics and rental trends benchmarking your properties across Ahmedabad &amp; Gandhinagar.
+                  </p>
+                </div>
+              </div>
+
+              <div class="dash-kpi-grid">
+                <div class="kpi-card">
+                  <div class="kpi-label">Annualized Rental Yield</div>
+                  <div class="kpi-number" style="color:var(--primary);">4.2%</div>
+                  <div class="kpi-subtext">+0.8% above Ahmedabad avg (3.4%)</div>
+                </div>
+                <div class="kpi-card">
+                  <div class="kpi-label">Average Vacancy Duration</div>
+                  <div class="kpi-number">6 Days</div>
+                  <div class="kpi-subtext">Due to Nestera student matching</div>
+                </div>
+                <div class="kpi-card">
+                  <div class="kpi-label">Maintenance Cost Ratio</div>
+                  <div class="kpi-number" style="color:var(--accent-emerald-dark);">2.1%</div>
+                  <div class="kpi-subtext">Well within 5% safe benchmark</div>
+                </div>
+              </div>
+
+              <div class="owner-table-card" style="padding:24px;">
+                <h3 style="font-size:1.15rem; font-weight:800; margin-bottom:12px;">Local Market Rental Comp Analysis</h3>
+                <p style="font-size:0.875rem; color:var(--text-secondary); margin-bottom:16px;">
+                  Properties located near Nirma University, CEPT, and GIFT City demand 15-22% premium for furnished accommodation.
+                </p>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px;">
+                  <div style="background:var(--bg-surface-secondary); padding:16px; border-radius:10px;">
+                    <strong style="display:block; margin-bottom:4px;">SG Highway / Nirma</strong>
+                    <div style="font-size:1.2rem; font-weight:800; color:var(--primary);">₹18,000 – ₹24,000</div>
+                    <span style="font-size:0.75rem; color:var(--text-muted);">High student density</span>
+                  </div>
+                  <div style="background:var(--bg-surface-secondary); padding:16px; border-radius:10px;">
+                    <strong style="display:block; margin-bottom:4px;">Bodakdev / Sindhu Bhavan</strong>
+                    <div style="font-size:1.2rem; font-weight:800; color:var(--primary);">₹22,000 – ₹32,000</div>
+                    <span style="font-size:0.75rem; color:var(--text-muted);">Young professional preferred</span>
+                  </div>
+                  <div style="background:var(--bg-surface-secondary); padding:16px; border-radius:10px;">
+                    <strong style="display:block; margin-bottom:4px;">GIFT City / Gandhinagar</strong>
+                    <div style="font-size:1.2rem; font-weight:800; color:var(--primary);">₹16,000 – ₹20,000</div>
+                    <span style="font-size:0.75rem; color:var(--text-muted);">Tech &amp; finance interns</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 9. SUBPANEL: PROFILE -->
+            <div class="owner-subpanel" id="owner-panel-profile" role="tabpanel" aria-labelledby="owner-tab-profile">
+              <div class="owner-header-row">
+                <div>
+                  <h2>Owner &amp; Landlord Profile</h2>
+                  <p style="color:var(--text-secondary); font-size:0.9rem;">
+                    Manage your verified host credentials, banking details for escrow payouts, and contact information.
+                  </p>
+                </div>
+              </div>
+
+              <div class="owner-table-card" style="padding:24px;">
+                <div style="display:flex; align-items:center; gap:18px; margin-bottom:24px; flex-wrap:wrap;">
+                  <img src="—Pngtree—man avatar image for profile_13001882.png" alt="Owner Avatar" id="owner-profile-avatar" style="width:72px; height:72px; border-radius:50%; object-fit:cover; border:3px solid var(--primary-light);" />
+                  <div>
+                    <h3 style="margin:0 0 6px;" id="owner-profile-name">Landlord Partner</h3>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                      <span class="badge badge-verified">✓ Verified Property Host</span>
+                      <span class="badge badge-emerald">✓ Aadhaar &amp; PAN e-Verified</span>
+                      <span class="badge badge-primary">Direct Escrow Partner</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px;">
+                  <div style="background:var(--bg-surface-secondary); padding:16px; border-radius:12px;">
+                    <span style="font-size:0.75rem; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Contact Email</span>
+                    <div style="font-size:0.95rem; font-weight:700; margin-top:4px;" id="owner-profile-email">owner@example.com</div>
+                  </div>
+                  <div style="background:var(--bg-surface-secondary); padding:16px; border-radius:12px;">
+                    <span style="font-size:0.75rem; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Registered Mobile</span>
+                    <div style="font-size:0.95rem; font-weight:700; margin-top:4px;" id="owner-profile-phone">+91 98250 12345</div>
+                  </div>
+                  <div style="background:var(--bg-surface-secondary); padding:16px; border-radius:12px;">
+                    <span style="font-size:0.75rem; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Registered Escrow Bank</span>
+                    <div style="font-size:0.95rem; font-weight:700; margin-top:4px;">HDFC Bank • Account ****4821</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 10. SUBPANEL: SETTINGS -->
+            <div class="owner-subpanel" id="owner-panel-settings" role="tabpanel" aria-labelledby="owner-tab-settings">
+              <div class="owner-header-row">
+                <div>
+                  <h2>Owner Preferences &amp; Automation Settings</h2>
+                  <p style="color:var(--text-secondary); font-size:0.9rem;">
+                    Configure automated maintenance technician dispatch, WhatsApp alerts, and rental deposit escrow rules.
+                  </p>
+                </div>
+              </div>
+
+              <div class="owner-table-card" style="padding:24px;">
+                <div style="display:flex; flex-direction:column; gap:20px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:16px; border-bottom:1px solid var(--border-subtle); flex-wrap:wrap; gap:10px;">
+                    <div>
+                      <strong style="font-size:0.95rem; display:block;">Instant WhatsApp Alerts for Maintenance Requests</strong>
+                      <span style="font-size:0.8rem; color:var(--text-secondary);">Receive immediate WhatsApp notifications whenever a tenant raises an urgent repair.</span>
+                    </div>
+                    <input type="checkbox" checked style="width:20px; height:20px; accent-color:var(--primary); cursor:pointer;" onchange="showToast('WhatsApp notification preference saved.')" />
+                  </div>
+
+                  <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:16px; border-bottom:1px solid var(--border-subtle); flex-wrap:wrap; gap:10px;">
+                    <div>
+                      <strong style="font-size:0.95rem; display:block;">Auto-Acknowledge Maintenance Tickets within 2 Hours</strong>
+                      <span style="font-size:0.8rem; color:var(--text-secondary);">Automatically dispatch verified local electricians or plumbers for routine issues.</span>
+                    </div>
+                    <input type="checkbox" checked style="width:20px; height:20px; accent-color:var(--primary); cursor:pointer;" onchange="showToast('Auto-dispatch preference saved.')" />
+                  </div>
+
+                  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div>
+                      <strong style="font-size:0.95rem; display:block;">Direct Escrow Rent Payout Autopilot</strong>
+                      <span style="font-size:0.8rem; color:var(--text-secondary);">Automatically transfer monthly tenant rental collections to bank account on the 5th of each month.</span>
+                    </div>
+                    <input type="checkbox" checked style="width:20px; height:20px; accent-color:var(--primary); cursor:pointer;" onchange="showToast('Escrow autopilot preference saved.')" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
@@ -2299,6 +2709,87 @@
   </div>
 
   <!-- ==========================================================================
+       MODAL 18: OWNER MAINTENANCE TICKET DETAIL & RESOLUTION MODAL
+       ========================================================================== -->
+  <div class="details-modal-backdrop" id="owner-ticket-detail-modal" style="z-index: 10000;">
+    <div class="details-modal-container" style="max-width: 680px; padding: 28px; border-radius: 20px;">
+      <button class="modal-close-btn" onclick="closeOwnerTicketDetailModal()" aria-label="Close modal">✕</button>
+
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid var(--border-subtle); flex-wrap:wrap; gap:10px;">
+        <div>
+          <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
+            <span class="badge badge-primary" id="modal-ticket-id">maint-101</span>
+            <span class="badge" id="modal-ticket-urgency">HIGH PRIORITY</span>
+            <span class="badge badge-verified" id="modal-ticket-status">In Progress</span>
+          </div>
+          <h2 style="font-size:1.4rem; font-weight:800; margin:0;" id="modal-ticket-title">Geyser leaking</h2>
+        </div>
+        <span style="font-size:0.8rem; color:var(--text-muted);" id="modal-ticket-time">Reported 2h ago</span>
+      </div>
+
+      <!-- Tenant & Property Card -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px; background:var(--bg-surface-secondary); padding:14px; border-radius:12px;">
+        <div>
+          <span style="font-size:0.75rem; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Tenant</span>
+          <div style="font-weight:700; font-size:0.95rem; margin-top:2px;" id="modal-ticket-tenant">Aman Singh</div>
+          <div style="font-size:0.8rem; color:var(--text-secondary);" id="modal-ticket-tenant-contact">+91 98765 43210</div>
+        </div>
+        <div>
+          <span style="font-size:0.75rem; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Property &amp; Unit</span>
+          <div style="font-weight:700; font-size:0.95rem; margin-top:2px;" id="modal-ticket-prop">Palm Grove Luxury Living</div>
+          <div style="font-size:0.8rem; color:var(--text-secondary);" id="modal-ticket-location">Flat 402 • SG Highway</div>
+        </div>
+      </div>
+
+      <!-- Description & Category -->
+      <div style="margin-bottom:18px;">
+        <div style="font-size:0.8rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:6px;">Issue Description</div>
+        <p style="font-size:0.9rem; color:var(--text-primary); line-height:1.6; background:var(--bg-surface); padding:12px 14px; border-radius:10px; border:1px solid var(--border-subtle); margin:0;" id="modal-ticket-desc">
+          Geyser inlet joint is leaking water continuously into the drainage pipe. Requires pipe seal replacement.
+        </p>
+      </div>
+
+      <!-- Attached Photos / Proof Vault -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:0.8rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:6px;">Attached Inspection Evidence</div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <img id="modal-ticket-photo" src="https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=400&q=80" alt="Evidence" style="width:110px; height:80px; object-fit:cover; border-radius:8px; border:1px solid var(--border-medium); cursor:pointer;" onclick="showToast('Opened high-resolution photo evidence')" />
+          <div style="font-size:0.8rem; color:var(--text-muted);">
+            <div>✓ Time-stamped camera upload</div>
+            <div>✓ Linked to Move-In Proof Vault item</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Technician Assignment -->
+      <div style="background:#F0FDF4; border:1px solid #BBF7D0; padding:12px 16px; border-radius:12px; margin-bottom:22px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <span style="font-size:0.75rem; font-weight:800; color:#166534; text-transform:uppercase;">Assigned Certified Technician</span>
+          <div style="font-weight:800; color:#14532D; font-size:0.95rem; margin-top:2px;" id="modal-ticket-tech">Ramesh Kumar (Certified Plumber &amp; Electrician)</div>
+          <div style="font-size:0.8rem; color:#15803D;">48-Hour Service Level Agreement (SLA) Active</div>
+        </div>
+        <button class="btn btn-sm btn-secondary" onclick="showToast('Technician WhatsApp dispatch window triggered!')">💬 Contact Pro</button>
+      </div>
+
+      <!-- Owner Status Progression Action Buttons -->
+      <div>
+        <div style="font-size:0.8rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">Update Ticket Resolution Status</div>
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;">
+          <button class="btn btn-sm btn-secondary" id="modal-btn-ack" onclick="handleOwnerUpdateCurrentTicket('Acknowledged')">
+            1. Acknowledge
+          </button>
+          <button class="btn btn-sm btn-outline" id="modal-btn-prog" onclick="handleOwnerUpdateCurrentTicket('In Progress')">
+            2. In Progress
+          </button>
+          <button class="btn btn-sm btn-primary" id="modal-btn-resolve" onclick="handleOwnerUpdateCurrentTicket('Resolved')">
+            3. ✓ Mark Resolved
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
        WHATSAPP / IN-APP 24/7 MAINTENANCE RELAY BOT WIDGET
        ========================================================================== -->
   <button class="nestora-bot-launcher" id="nestora-bot-launcher" onclick="toggleMaintenanceChat()">
@@ -2311,7 +2802,7 @@
       <div style="display: flex; align-items: center; gap: 8px;">
         <div style="width: 9px; height: 9px; border-radius: 50%; background: #25D366;"></div>
         <div>
-          <h4 style="margin: 0; font-size: 0.95rem; font-weight: 800; color: white;">Nestora Relay Bot</h4>
+          <h4 style="margin: 0; font-size: 0.95rem; font-weight: 800; color: white;">Nestera Relay Bot</h4>
           <div style="font-size: 0.7rem; opacity: 0.85;">WhatsApp &amp; In-App Sync Active</div>
         </div>
       </div>
@@ -2321,7 +2812,7 @@
 
     <div class="nestora-bot-messages" id="nestora-bot-messages-box">
       <div class="nestora-msg-bubble nestora-msg-bot" id="nestora-bot-welcome-bubble">
-        👋 Greetings! I am the Nestora Maintenance Relay Bot. Type any repair issue (e.g. "geyser leaking", "ac not
+        👋 Greetings! I am the Nestera Maintenance Relay Bot. Type any repair issue (e.g. "geyser leaking", "ac not
         cooling") to dispatch a technician immediately.
       </div>
     </div>

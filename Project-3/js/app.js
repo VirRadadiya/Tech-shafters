@@ -55,6 +55,16 @@ const AppState = {
   userRole: (localStorage.getItem('nestora_permanent_role') || 'tenant') === 'owner' ? 'Owner' : 'Tenant',
   selectedPreRole: 'tenant',
   authMode: 'signup',
+  ownerCurrentTab: 'dashboard',
+  currentInspectingTicketId: null,
+  acceptedRoommates: (() => {
+    try {
+      const s = localStorage.getItem('nestera_accepted_roommates') || localStorage.getItem('nestora_accepted_roommates');
+      return s ? JSON.parse(s) : [];
+    } catch (e) {
+      return [];
+    }
+  })(),
   checkoutProperty: null,
   checkoutDuration: 3,
   checkoutStep: 1,
@@ -270,6 +280,12 @@ function navigateTo(viewId, payload = null) {
   } else if (viewId === 'owner') {
     AppState.userRole = 'Owner';
     updateRoleButtons();
+    renderOwnerTable();
+    renderOwnerMaintenanceTickets();
+    loadOwnerApplications();
+    renderOwnerNotificationsList();
+    updateOwnerSidebarBadges();
+    switchOwnerTab(AppState.ownerCurrentTab || 'dashboard', false);
   } else if (viewId === 'dashboard') {
     AppState.userRole = 'Tenant';
     updateRoleButtons();
@@ -847,8 +863,24 @@ function triggerContactOwner() {
 }
 
 /* ==========================================================================
-   4. ROOMMATE MATCHING HUB ("NESTORA MATCH")
+   4. ROOMMATE MATCHING HUB ("NESTERA MATCH")
    ========================================================================== */
+
+function getStableRoommateMatch(m) {
+  if (m.compatibility && m.compatibility >= 61 && m.compatibility <= 98) {
+    return m.compatibility;
+  }
+  // Deterministic calculation based on ID / name string hash - stable across renders & reloads
+  const str = `${m.id || ''}-${m.name || ''}`;
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  const score = 65 + (Math.abs(hash) % 31); // Always in 65% - 95% range
+  m.compatibility = score;
+  return score;
+}
 
 function renderRoommateSwiper() {
   const container = document.getElementById('tinder-card-container');
@@ -856,14 +888,17 @@ function renderRoommateSwiper() {
 
   const mates = window.NESTORA_DATA.roommates;
   const current = mates[AppState.roommateCardIndex % mates.length];
+  const compatScore = getStableRoommateMatch(current);
+  const isAccepted = AppState.acceptedRoommates.includes(current.id);
 
   container.innerHTML = `
     <div class="tinder-card" id="active-swipe-card">
       <div class="tinder-card-photo-wrap">
         <img src="${current.avatar}" alt="${current.name}" class="tinder-photo" />
         <div class="tinder-compatibility-badge">
-          <span>❤️ ${current.compatibility}% Match</span>
+          <span>❤️ ${compatScore}% Match</span>
         </div>
+        ${isAccepted ? '<span class="badge badge-emerald" style="position:absolute; top:12px; left:12px; z-index:5;">✓ Connected</span>' : ''}
         <div class="tinder-card-overlay">
           <div class="tinder-name-age">${current.name}, ${current.age} ✓</div>
           <div class="tinder-profession">${current.role} • ${current.institution}</div>
@@ -873,19 +908,19 @@ function renderRoommateSwiper() {
       <div class="tinder-card-body">
         <div class="compat-breakdown-grid">
           <div>
-            <div class="compat-metric-val">${current.compatibilityBreakdown.lifestyle}%</div>
+            <div class="compat-metric-val">${current.compatibilityBreakdown?.lifestyle || 92}%</div>
             <div class="compat-metric-label">Lifestyle</div>
           </div>
           <div>
-            <div class="compat-metric-val">${current.compatibilityBreakdown.budget}%</div>
+            <div class="compat-metric-val">${current.compatibilityBreakdown?.budget || 88}%</div>
             <div class="compat-metric-label">Budget</div>
           </div>
           <div>
-            <div class="compat-metric-val">${current.compatibilityBreakdown.location}%</div>
+            <div class="compat-metric-val">${current.compatibilityBreakdown?.location || 94}%</div>
             <div class="compat-metric-label">Location</div>
           </div>
           <div>
-            <div class="compat-metric-val">${current.compatibilityBreakdown.moveInDate}%</div>
+            <div class="compat-metric-val">${current.compatibilityBreakdown?.moveInDate || 90}%</div>
             <div class="compat-metric-label">Move-in</div>
           </div>
         </div>
@@ -899,13 +934,13 @@ function renderRoommateSwiper() {
           <span class="lifestyle-chip">🧹 ${current.lifestyle.cleanliness}</span>
           <span class="lifestyle-chip">🚭 ${current.lifestyle.smoking}</span>
           <span class="lifestyle-chip">🥗 ${current.lifestyle.food}</span>
-          <span class="lifestyle-chip">🐾 ${current.lifestyle.pets}</span>
+          <span class="lifestyle-chip">🐾 ${current.lifestyle.pets || 'No pets'}</span>
         </div>
 
         <div class="tinder-actions-row">
           <button class="swipe-action-btn btn-skip" onclick="swipeRoommate('skip')" title="Skip profile">✕</button>
           <button class="swipe-action-btn btn-info" onclick="openRoommateModal('${current.id}')" title="View detailed profile">ℹ</button>
-          <button class="swipe-action-btn btn-match" onclick="swipeRoommate('match')" title="Connect & Match">❤️</button>
+          <button class="swipe-action-btn btn-match" onclick="swipeRoommate('match')" title="${isAccepted ? 'Already Connected' : 'Connect & Match'}">❤️</button>
         </div>
       </div>
     </div>
@@ -926,8 +961,29 @@ function swipeRoommate(action) {
   renderRoommateSwiper();
 }
 
+function handleConnectRoommate(roommateId) {
+  const mate = window.NESTORA_DATA.roommates.find(x => x.id === roommateId);
+  if (mate) {
+    showMatchCelebration(mate);
+  }
+}
+
 function showMatchCelebration(roommate) {
-  showToast(`🎉 It's a 87% Match with ${roommate.name}! Connection invitation sent.`);
+  if (!roommate) return;
+  const score = getStableRoommateMatch(roommate);
+
+  if (!AppState.acceptedRoommates.includes(roommate.id)) {
+    AppState.acceptedRoommates.push(roommate.id);
+    try {
+      localStorage.setItem('nestera_accepted_roommates', JSON.stringify(AppState.acceptedRoommates));
+    } catch (e) {
+      console.warn('Could not persist accepted roommates:', e);
+    }
+  }
+
+  showToast(`🎉 It's a ${score}% Match with ${roommate.name}! Status: Connected / Accepted.`);
+  renderRoommateGrid();
+  renderRoommateSwiper();
 }
 
 function toggleRoommateView(mode) {
@@ -942,11 +998,13 @@ function toggleRoommateView(mode) {
     if (gridView) gridView.classList.remove('active');
     if (swiperBtn) swiperBtn.classList.add('active');
     if (gridBtn) gridBtn.classList.remove('active');
+    renderRoommateSwiper();
   } else {
     if (swiperDeck) swiperDeck.style.display = 'none';
     if (gridView) gridView.classList.add('active');
     if (swiperBtn) swiperBtn.classList.remove('active');
     if (gridBtn) gridBtn.classList.add('active');
+    renderRoommateGrid();
   }
 }
 
@@ -955,26 +1013,37 @@ function renderRoommateGrid() {
   if (!container) return;
 
   const mates = window.NESTORA_DATA.roommates;
-  container.innerHTML = mates.map(m => `
+  container.innerHTML = mates.map(m => {
+    const isAccepted = AppState.acceptedRoommates.includes(m.id);
+    const score = getStableRoommateMatch(m);
+
+    return `
     <div class="roommate-mini-card">
       <div style="height:200px; position:relative; overflow:hidden;">
         <img src="${m.avatar}" alt="${m.name}" style="width:100%; height:100%; object-fit:cover;" />
         <span class="badge badge-verified" style="position:absolute; top:12px; left:12px;">✓ Verified ID</span>
-        <span class="badge badge-primary" style="position:absolute; top:12px; right:12px;">❤️ ${m.compatibility}% Match</span>
+        <span class="badge badge-primary" style="position:absolute; top:12px; right:12px;">❤️ ${score}% Match</span>
+        ${isAccepted ? '<span class="badge badge-emerald" style="position:absolute; bottom:10px; left:12px;">✓ Connected</span>' : ''}
       </div>
       <div style="padding:20px;">
-        <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:4px;">${m.name}, ${m.age}</h3>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
+          <h3 style="font-size:1.2rem; font-weight:800; margin:0;">${m.name}, ${m.age}</h3>
+          ${isAccepted ? '<span style="font-size:0.75rem; color:var(--accent-emerald-dark); font-weight:800;">Status: Connected</span>' : ''}
+        </div>
         <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">${m.role} • ${m.institution}</p>
         <div style="font-size:0.875rem; font-weight:700; color:var(--primary); margin-bottom:16px;">
           Budget: ${m.budget}
         </div>
         <div style="display:flex; gap:8px;">
           <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="openRoommateModal('${m.id}')">View Profile</button>
-          <button class="btn btn-primary btn-sm" style="flex:1;" onclick="showMatchCelebration(window.NESTORA_DATA.roommates.find(x => x.id === '${m.id}'))">Connect</button>
+          ${isAccepted 
+            ? `<button class="btn btn-sm" style="flex:1; background:#ECFDF5; color:#065F46; border:1.5px solid #A7F3D0; font-weight:700; cursor:default;" disabled title="Roommate connected">✓ Connected</button>`
+            : `<button class="btn btn-primary btn-sm" style="flex:1;" onclick="handleConnectRoommate('${m.id}')">Connect</button>`
+          }
         </div>
       </div>
     </div>
-  `).join('');
+  `}).join('');
 }
 
 /* ==========================================================================
@@ -984,6 +1053,8 @@ function renderRoommateGrid() {
 function openRoommateModal(roommateId) {
   const mate = window.NESTORA_DATA.roommates.find(m => m.id === roommateId) || window.NESTORA_DATA.roommates[0];
   AppState.selectedRoommate = mate;
+  const score = getStableRoommateMatch(mate);
+  const isAccepted = AppState.acceptedRoommates.includes(mate.id);
 
   const modal = document.getElementById('roommate-modal');
   if (!modal) return;
@@ -994,14 +1065,16 @@ function openRoommateModal(roommateId) {
       <div class="profile-hero-header">
         <img src="${mate.avatar}" alt="${mate.name}" class="profile-avatar-large" />
         <div class="profile-meta-wrap">
-          <div style="display:flex; align-items:center; gap:8px;">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
             <h3>${mate.name}, ${mate.age}</h3>
             <span class="badge badge-verified">✓ Verified Student/Work</span>
+            ${isAccepted ? '<span class="badge badge-emerald">✓ Connected / Accepted</span>' : ''}
           </div>
           <p style="font-size:0.95rem; color:var(--text-secondary); margin-bottom:6px;">${mate.institution}</p>
-          <div style="display:flex; gap:16px; font-size:0.85rem; font-weight:700;">
+          <div style="display:flex; gap:16px; font-size:0.85rem; font-weight:700; flex-wrap:wrap;">
             <span style="color:var(--primary)">Target Budget: ${mate.budget}</span>
-            <span style="color:var(--accent-emerald-dark)">❤️ ${mate.compatibility}% Compatibility</span>
+            <span style="color:var(--accent-emerald-dark)">❤️ ${score}% Compatibility</span>
+            ${isAccepted ? '<span style="color:var(--accent-emerald-dark);">Status: Connected</span>' : ''}
           </div>
         </div>
       </div>
@@ -1009,7 +1082,7 @@ function openRoommateModal(roommateId) {
       <div class="why-compatible-box">
         <h4>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-          Why You're Compatible
+          Why You're Compatible (${score}% Match)
         </h4>
         <ul class="why-list">
           ${mate.whyCompatible.map(item => `
@@ -1052,12 +1125,24 @@ function openRoommateModal(roommateId) {
         </div>
       </div>
 
-      <div style="display:flex; gap:12px;">
-        <button class="btn btn-primary" style="flex:1;" onclick="closeRoommateModal(); showMatchCelebration(AppState.selectedRoommate);">
-          Connect & Chat on Nestora
-        </button>
-        <button class="btn btn-secondary" onclick="closeRoommateModal();">Close</button>
-      </div>
+      ${isAccepted ? `
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <button class="btn btn-secondary" style="flex:1; background:#ECFDF5; color:#065F46; border:1.5px solid #A7F3D0; font-weight:700;" disabled>
+            ✓ Connected Roommate (Mutual Match)
+          </button>
+          <button class="btn btn-outline" onclick="closeRoommateModal(); openRoommateContractModal();" title="Draft cohabitation house constitution">
+            📜 House Constitution
+          </button>
+          <button class="btn btn-secondary" onclick="closeRoommateModal();">Close</button>
+        </div>
+      ` : `
+        <div style="display:flex; gap:12px;">
+          <button class="btn btn-primary" style="flex:1;" onclick="closeRoommateModal(); handleConnectRoommate('${mate.id}');">
+            Accept &amp; Connect on Nestera (${score}% Match)
+          </button>
+          <button class="btn btn-secondary" onclick="closeRoommateModal();">Close</button>
+        </div>
+      `}
     `;
   }
 
@@ -1232,9 +1317,9 @@ function closeReportIssueModal() {
 function submitNewMaintenanceIssue(e) {
   e.preventDefault();
   const category = document.getElementById('issue-category-select').value;
-  const title = document.getElementById('issue-title-input').value;
-  const location = document.getElementById('issue-location-input').value;
-  const description = document.getElementById('issue-desc-input').value;
+  const title = document.getElementById('issue-title-input').value.trim();
+  const location = document.getElementById('issue-location-input').value.trim();
+  const description = document.getElementById('issue-desc-input').value.trim();
   const urgency = document.getElementById('issue-urgency-select').value;
 
   if (!title || !description) {
@@ -1242,17 +1327,26 @@ function submitNewMaintenanceIssue(e) {
     return;
   }
 
+  const tenantName = AppState.currentUser?.fullName || 'Aman Singh';
+  const propLocation = location || 'Palm Grove Luxury Living (Flat 402)';
+
   const newTicket = {
     id: `maint-${Date.now()}`,
     title: title,
+    issue: title,
     category: category,
     status: "Reported",
     statusColor: "yellow",
     urgency: urgency,
+    priority: urgency.toLowerCase(),
+    tenant: tenantName,
+    property: propLocation,
+    location: propLocation,
     reportedAgo: "Just now",
+    time: "Just now",
     technician: {
       name: "Assigning Technician...",
-      phone: "+91 Nestora Support",
+      phone: "+91 Nestera Support",
       rating: 5.0,
       eta: "Within 2 hours"
     },
@@ -1265,15 +1359,43 @@ function submitNewMaintenanceIssue(e) {
       { label: "Resolved", time: "Pending", done: false }
     ],
     description: description,
-    location: location,
     images: []
   };
 
   AppState.maintenanceTickets.unshift(newTicket);
+
+  // Generate Owner Notification & Message
+  const newOwnerNotif = {
+    id: `notif-maint-${Date.now()}`,
+    user_id: 'usr-owner-1',
+    type: 'maintenance',
+    title: `New Maintenance Ticket: ${title}`,
+    message: `${tenantName} at ${propLocation} reported: "${description}". Priority: ${urgency}.`,
+    time: 'Just now',
+    read: false,
+    relatedId: newTicket.id,
+    actionTarget: `maintenance:${newTicket.id}`,
+    actionText: 'View Ticket',
+    tenant: tenantName,
+    property: propLocation
+  };
+
+  AppState.notifications.unshift(newOwnerNotif);
+
+  // Sync to Express / Supabase backend if active
+  apiCall('/tickets', {
+    method: 'POST',
+    body: JSON.stringify(newTicket)
+  });
+
   renderMaintenanceTickets();
+  renderOwnerMaintenanceTickets();
+  renderOwnerNotificationsList();
+  updateOwnerSidebarBadges();
   closeReportIssueModal();
-  showToast('Maintenance ticket reported! Landlord and building manager alerted.');
+  showToast('Maintenance ticket reported! Landlord alerted via Owner Hub notification & badge updated.', 'success');
 }
+
 
 /* ==========================================================================
    8. SMART PROPERTY VALUATION PAGE ("NESTORA VALUEIQ")
@@ -1369,17 +1491,162 @@ function triggerSignAgreement() {
 }
 
 /* ==========================================================================
-   10. OWNER / LANDLORD DASHBOARD ("NESTORA HOST")
+   10. OWNER / LANDLORD DASHBOARD ("NESTERA HOST")
    ========================================================================== */
+
+function switchOwnerTab(tabName, updateUrl = true) {
+  AppState.ownerCurrentTab = tabName;
+
+  // Update sidebar button states
+  document.querySelectorAll('.owner-menu-item').forEach(btn => {
+    btn.classList.remove('active');
+    btn.setAttribute('aria-selected', 'false');
+  });
+
+  const targetTabBtn = document.getElementById(`owner-tab-${tabName}`);
+  if (targetTabBtn) {
+    targetTabBtn.classList.add('active');
+    targetTabBtn.setAttribute('aria-selected', 'true');
+  }
+
+  // Update subpanel views
+  document.querySelectorAll('.owner-subpanel').forEach(panel => {
+    panel.classList.remove('active');
+  });
+
+  const targetPanel = document.getElementById(`owner-panel-${tabName}`);
+  if (targetPanel) {
+    targetPanel.classList.add('active');
+  }
+
+  // Close mobile drawer if open
+  toggleOwnerMobileSidebar(false);
+
+  // Sync browser URL & history without full page reload
+  if (updateUrl) {
+    try {
+      history.pushState({ view: 'owner', ownerTab: tabName }, '', `#owner/${tabName}`);
+    } catch (e) {
+      window.location.hash = `owner/${tabName}`;
+    }
+  }
+
+  // Subpanel-specific loaders
+  if (tabName === 'properties' || tabName === 'dashboard') {
+    renderOwnerTable();
+  }
+  if (tabName === 'applications' || tabName === 'dashboard') {
+    loadOwnerApplications();
+  }
+  if (tabName === 'maintenance' || tabName === 'dashboard') {
+    renderOwnerMaintenanceTickets();
+  }
+  if (tabName === 'notifications') {
+    renderOwnerNotificationsList();
+  }
+
+  updateOwnerSidebarBadges();
+}
+
+function toggleOwnerMobileSidebar(force = null) {
+  const drawer = document.getElementById('owner-sidebar-drawer');
+  const closeBtn = document.getElementById('owner-sidebar-close-btn');
+  if (!drawer) return;
+
+  if (force !== null) {
+    drawer.classList.toggle('mobile-open', force);
+  } else {
+    drawer.classList.toggle('mobile-open');
+  }
+
+  if (closeBtn) {
+    closeBtn.style.display = drawer.classList.contains('mobile-open') ? 'inline-block' : 'none';
+  }
+}
+
+function updateOwnerSidebarBadges() {
+  const pendingMaint = AppState.maintenanceTickets.filter(t => t.status !== 'Resolved').length;
+  const unreadNotifs = AppState.notifications.filter(n => !n.read).length;
+  const propsList = (AppState.liveProperties && AppState.liveProperties.length > 0)
+    ? AppState.liveProperties
+    : (window.NESTORA_DATA?.ownerData?.properties || []);
+  const propsCount = propsList.length || 8;
+  const pendingApps = 3;
+
+  // Maintenance Badge
+  const maintBadge = document.getElementById('owner-badge-maint');
+  if (maintBadge) {
+    if (pendingMaint > 0) {
+      maintBadge.innerText = `🔴 ${pendingMaint}`;
+      maintBadge.style.display = 'inline-flex';
+    } else {
+      maintBadge.style.display = 'none';
+    }
+  }
+
+  // Applications Badge
+  const appsBadge = document.getElementById('owner-badge-apps');
+  if (appsBadge) {
+    appsBadge.innerText = pendingApps;
+    appsBadge.style.display = pendingApps > 0 ? 'inline-flex' : 'none';
+  }
+
+  // Messages Badge
+  const msgsBadge = document.getElementById('owner-badge-msgs');
+  if (msgsBadge) {
+    msgsBadge.innerText = '2';
+  }
+
+  // Notifications Badge
+  const notifBadge = document.getElementById('owner-badge-notifs');
+  if (notifBadge) {
+    if (unreadNotifs > 0) {
+      notifBadge.innerText = unreadNotifs;
+      notifBadge.style.display = 'inline-flex';
+    } else {
+      notifBadge.style.display = 'none';
+    }
+  }
+
+  // Properties Badge
+  const propsBadge = document.getElementById('owner-badge-props');
+  if (propsBadge) {
+    propsBadge.innerText = propsCount;
+  }
+
+  // KPI Numbers
+  const kpiProps = document.getElementById('owner-kpi-active-props');
+  if (kpiProps) kpiProps.innerText = propsCount;
+
+  const kpiMaint = document.getElementById('owner-kpi-maint');
+  if (kpiMaint) kpiMaint.innerText = pendingMaint;
+
+  // Urgent Banner on Dashboard
+  const urgentBanner = document.getElementById('owner-dash-urgent-banner');
+  const urgentText = document.getElementById('owner-dash-urgent-text');
+  if (urgentBanner) {
+    if (pendingMaint > 0) {
+      urgentBanner.style.display = 'block';
+      if (urgentText) {
+        urgentText.innerText = `${pendingMaint} ticket${pendingMaint === 1 ? '' : 's'} logged via Tenant Hub & Relay Bot require review or technician scheduling.`;
+      }
+    } else {
+      urgentBanner.style.display = 'none';
+    }
+  }
+}
 
 function renderOwnerTable() {
   const tbody = document.getElementById('owner-tenant-table-body');
-  if (!tbody) return;
+  const tbodyFull = document.getElementById('owner-tenant-table-body-full');
+  if (!tbody && !tbodyFull) return;
 
-  const props = window.NESTORA_DATA.ownerData.properties;
-  tbody.innerHTML = props.map(p => {
+  const props = (AppState.liveProperties && AppState.liveProperties.length > 0)
+    ? AppState.liveProperties
+    : (window.NESTORA_DATA?.ownerData?.properties || []);
+
+  const html = props.map(p => {
     const isFound = (p.listingStatus === 'Found' || p.status === 'Found');
-    const statusText = isFound ? 'Found' : 'Active';
     const toggleBtnStyle = isFound 
       ? 'background: #F3F4F6; color: #4B5563; border: 1.5px solid #D1D5DB;' 
       : 'background: #ECFDF5; color: #065F46; border: 1.5px solid #A7F3D0;';
@@ -1387,32 +1654,35 @@ function renderOwnerTable() {
     return `
     <tr>
       <td><strong>${p.title}</strong><div style="font-size:0.75rem; color:var(--text-muted)">${p.locality}</div></td>
-      <td>${p.tenant}</td>
-      <td><strong>₹${p.rent.toLocaleString('en-IN')}/mo</strong></td>
+      <td>${p.tenant || 'Unoccupied'}</td>
+      <td><strong>₹${(p.rent || 18000).toLocaleString('en-IN')}/mo</strong></td>
       <td>
         <button class="btn btn-sm" style="${toggleBtnStyle} border-radius:20px; font-weight:700; cursor:pointer; padding: 4px 12px; font-size:0.78rem; display:inline-flex; align-items:center; gap:5px;" onclick="openOwnerStatusConfirm('${p.id}')" title="Click to change availability status">
           ${isFound ? '🔒 Found (Hidden)' : '🟢 Active (Live)'}
         </button>
       </td>
       <td>
-        <span class="badge ${p.paymentStatus.includes('Paid') ? 'badge-verified' : (p.paymentStatus.includes('Due') ? 'badge-amber' : 'badge-rose')}">
-          ${p.paymentStatus}
+        <span class="badge ${(p.paymentStatus || 'Paid').includes('Paid') ? 'badge-verified' : ((p.paymentStatus || '').includes('Due') ? 'badge-amber' : 'badge-rose')}">
+          ${p.paymentStatus || 'Paid on 5th'}
         </span>
       </td>
       <td>
-        <span style="font-size:0.825rem; font-weight:600; color:${p.maintenanceStatus.includes('Clear') ? 'var(--accent-emerald-dark)' : 'var(--accent-amber)'}">
-          ${p.maintenanceStatus}
+        <span style="font-size:0.825rem; font-weight:600; color:${(p.maintenanceStatus || 'Clear').includes('Clear') ? 'var(--accent-emerald-dark)' : 'var(--accent-amber)'}">
+          ${p.maintenanceStatus || 'Clear'}
         </span>
       </td>
       <td>
         <div style="display:flex; gap:6px;">
           <button class="btn btn-sm btn-primary" onclick="openOwnerEditPropertyModal('${p.id}')" title="Edit property details">Edit</button>
           <button class="btn btn-sm btn-secondary" onclick="openProofVaultModal()" title="View Move-In / Move-Out Proof Vault">Proof</button>
-          <button class="btn btn-sm btn-outline" onclick="showToast('GST Rental Invoice downloaded for ${p.tenant}!')">Invoice</button>
+          <button class="btn btn-sm btn-outline" onclick="showToast('GST Rental Invoice downloaded for ${p.tenant || 'Resident'}!')">Invoice</button>
         </div>
       </td>
     </tr>
   `}).join('');
+
+  if (tbody) tbody.innerHTML = html;
+  if (tbodyFull) tbodyFull.innerHTML = html;
 }
 
 function openOwnerStatusConfirm(propId) {
@@ -1666,13 +1936,14 @@ async function handleOwnerApplicationAction(appId, action) {
 
   showToast(`Application #${appId} ${actionText}! Updated on Supabase.`, 'success');
   loadOwnerApplications();
+  updateOwnerSidebarBadges();
 }
 
 function renderOwnerMaintenanceTickets() {
   const container = document.getElementById('owner-maintenance-list');
   if (!container) return;
 
-  const tickets = [
+  const defaultTickets = [
     {
       id: 'maint-101',
       tenant: 'Aman Singh',
@@ -1680,8 +1951,9 @@ function renderOwnerMaintenanceTickets() {
       issue: 'Geyser heating element tripping circuit breaker',
       priority: 'high',
       status: 'In Progress',
-      technician: 'Ramesh Kumar (Electrician)',
-      time: 'Logged 2h ago via WhatsApp Relay Bot'
+      technician: 'Ramesh Kumar (Certified Technician)',
+      time: 'Logged 2h ago via WhatsApp Relay Bot',
+      description: 'Inlet valve dripping continuously and heating element causing circuit break.'
     },
     {
       id: 'maint-102',
@@ -1689,9 +1961,10 @@ function renderOwnerMaintenanceTickets() {
       property: 'Bodakdev Minimal Studio (Unit 201)',
       issue: 'Kitchen RO filter slow flow rate',
       priority: 'medium',
-      status: 'Assigned',
+      status: 'Acknowledged',
       technician: 'Vijay Appliances',
-      time: 'Logged yesterday'
+      time: 'Logged yesterday',
+      description: 'Slow filtration rate. Filter membranes require pre-monsoon replacement.'
     },
     {
       id: 'maint-103',
@@ -1701,20 +1974,42 @@ function renderOwnerMaintenanceTickets() {
       priority: 'low',
       status: 'Resolved',
       technician: 'CoolTech Service',
-      time: 'Resolved 3 days ago'
+      time: 'Resolved 3 days ago',
+      description: 'Pre-summer servicing and gas pressure check completed.'
     }
   ];
 
+  // Map any tenant-reported tickets from AppState
+  const dynamicTickets = AppState.maintenanceTickets.map(t => ({
+    id: t.id,
+    tenant: t.tenant || AppState.currentUser?.fullName || 'Current Resident',
+    property: t.property || t.location || 'Palm Grove Luxury Living',
+    issue: t.title || t.issue || 'Maintenance Request',
+    priority: (t.urgency || t.priority || 'medium').toLowerCase(),
+    status: t.status || 'Reported',
+    technician: (t.technician && t.technician.name) || 'Ramesh Kumar (Certified Technician)',
+    time: t.reportedAgo || 'Reported recently',
+    description: t.description || 'Tenant reported repair request.'
+  }));
+
+  const allTicketsMap = new Map();
+  dynamicTickets.forEach(t => allTicketsMap.set(t.id, t));
+  defaultTickets.forEach(t => {
+    if (!allTicketsMap.has(t.id)) allTicketsMap.set(t.id, t);
+  });
+
+  const tickets = Array.from(allTicketsMap.values());
+
   container.innerHTML = tickets.map(t => {
     const isResolved = t.status === 'Resolved';
-    const isHigh = t.priority === 'high';
+    const isHigh = t.priority === 'high' || t.priority === 'urgent';
 
     return `
       <div style="background: var(--bg-surface-secondary); border: 1.5px solid var(--border-subtle); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
         <div>
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
             <span class="badge ${isHigh ? 'badge-rose' : 'badge-amber'}">${t.priority.toUpperCase()} PRIORITY</span>
-            <span class="badge ${isResolved ? 'badge-emerald' : 'badge-primary'}">${t.status}</span>
+            <span class="badge ${isResolved ? 'badge-emerald' : (t.status === 'In Progress' ? 'badge-primary' : 'badge-amber')}">${t.status}</span>
           </div>
           <h4 style="margin: 0 0 4px; font-size: 0.95rem; font-weight: 800;">${t.issue}</h4>
           <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">
@@ -1726,17 +2021,17 @@ function renderOwnerMaintenanceTickets() {
         </div>
 
         <div style="display: flex; gap: 8px;">
+          <button class="btn btn-sm btn-outline" style="flex: 1; padding: 6px;" onclick="openMaintenanceDetailModal('${t.id}')">
+            View Full Ticket
+          </button>
           ${!isResolved ? `
             <button class="btn btn-sm btn-primary" style="flex: 1; padding: 6px;" onclick="handleOwnerMaintenanceStatus('${t.id}', 'Resolved')">
-              ✓ Mark Resolved
-            </button>
-            <button class="btn btn-sm btn-secondary" style="flex: 1; padding: 6px;" onclick="showToast('Technician dispatched via WhatsApp!')">
-              📞 Dispatch
+              ✓ Resolve
             </button>
           ` : `
-            <div style="font-size: 0.8rem; color: var(--accent-emerald-dark); font-weight: 700; width: 100%; text-align: center;">
-              ✓ Ticket Closed (Verified by Tenant)
-            </div>
+            <span class="badge badge-emerald" style="display: flex; align-items: center; justify-content: center; flex: 1; padding: 6px;">
+              ✓ Closed
+            </span>
           `}
         </div>
       </div>
@@ -1744,13 +2039,215 @@ function renderOwnerMaintenanceTickets() {
   }).join('');
 }
 
+function renderOwnerNotificationsList() {
+  const container = document.getElementById('owner-notifications-full-list');
+  if (!container) return;
+
+  const notifs = AppState.notifications;
+  const unreadCount = notifs.filter(n => !n.read).length;
+  const badge = document.getElementById('owner-notif-inbox-badge');
+  if (badge) {
+    badge.innerText = `${unreadCount} Unread Alert${unreadCount === 1 ? '' : 's'}`;
+    badge.style.display = unreadCount > 0 ? 'inline-block' : 'none';
+  }
+
+  if (notifs.length === 0) {
+    container.innerHTML = `
+      <div style="padding: 30px; text-align: center; color: var(--text-muted);">
+        🎉 All caught up! No notifications right now.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = notifs.map(n => {
+    const isMaintenance = n.type === 'maintenance' || (n.actionTarget && n.actionTarget.includes('maintenance')) || (n.title && n.title.includes('Maintenance'));
+    const ticketId = n.relatedId || (n.ticket && n.ticket.id) || (n.actionTarget && n.actionTarget.startsWith('maintenance:') ? n.actionTarget.split(':')[1] : null);
+
+    return `
+      <div style="background: ${n.read ? 'var(--bg-surface)' : '#FEF3C7'}; border: 1.5px solid ${n.read ? 'var(--border-subtle)' : 'var(--accent-amber)'}; border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; transition: all 0.2s ease;">
+        <div style="display: flex; gap: 12px; align-items: flex-start;">
+          <div style="font-size: 1.6rem; line-height: 1;">
+            ${isMaintenance ? '🔧' : (n.type === 'application' ? '📝' : '🔔')}
+          </div>
+          <div>
+            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px; flex-wrap: wrap;">
+              <strong style="font-size: 0.95rem; color: var(--text-primary);">${n.title}</strong>
+              ${!n.read ? '<span class="badge badge-rose" style="font-size: 0.65rem; padding: 2px 6px;">NEW</span>' : ''}
+              <span style="font-size: 0.75rem; color: var(--text-muted);">${n.time || 'Recently'}</span>
+            </div>
+            <p style="font-size: 0.88rem; color: var(--text-secondary); margin: 0 0 8px; line-height: 1.5;">
+              ${n.message}
+            </p>
+            ${n.tenant ? `<div style="font-size: 0.78rem; color: var(--text-muted);">Tenant: <strong>${n.tenant}</strong> • Property: <strong>${n.property || 'Managed Unit'}</strong></div>` : ''}
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-end;">
+          ${isMaintenance && ticketId ? `
+            <button class="btn btn-sm btn-primary" onclick="openMaintenanceDetailModal('${ticketId}', '${n.id}')" style="white-space: nowrap;">
+              View Ticket →
+            </button>
+          ` : `
+            <button class="btn btn-sm btn-outline" onclick="handleNotificationClick('${n.id}')" style="white-space: nowrap;">
+              ${n.actionText || 'Open'} →
+            </button>
+          `}
+          ${!n.read ? `
+            <button class="btn btn-sm btn-secondary" onclick="markSingleNotificationRead('${n.id}')" style="font-size: 0.72rem; padding: 2px 6px;">
+              Mark Read
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function markSingleNotificationRead(notifId) {
+  const notif = AppState.notifications.find(n => n.id === notifId);
+  if (notif) {
+    notif.read = true;
+    updateOwnerSidebarBadges();
+    updateUnreadNotifBadge();
+    renderOwnerNotificationsList();
+  }
+}
+
+function openMaintenanceDetailModal(ticketId, notifId = null) {
+  if (notifId) {
+    markSingleNotificationRead(notifId);
+  }
+
+  // Find ticket in AppState or fallback
+  let ticket = AppState.maintenanceTickets.find(t => t.id === ticketId);
+  if (!ticket) {
+    ticket = (window.NESTORA_DATA?.maintenanceTickets || []).find(t => t.id === ticketId);
+  }
+  if (!ticket) {
+    ticket = {
+      id: ticketId,
+      title: 'Geyser inlet leaking',
+      tenant: 'Aman Singh',
+      property: 'Palm Grove Luxury Living - Flat 402',
+      location: 'Flat 402, SG Highway',
+      urgency: 'Medium',
+      priority: 'medium',
+      status: 'In Progress',
+      category: 'Plumbing',
+      description: 'Inlet joint is leaking water continuously into drainage pipe. Requires replacement pipe gasket.',
+      technician: { name: 'Ramesh Kumar (Certified Technician)' },
+      reportedAgo: '2h ago'
+    };
+  }
+
+  AppState.currentInspectingTicketId = ticket.id;
+
+  const modal = document.getElementById('owner-ticket-detail-modal');
+  if (!modal) return;
+
+  const idEl = document.getElementById('modal-ticket-id');
+  if (idEl) idEl.innerText = ticket.id;
+
+  const titleEl = document.getElementById('modal-ticket-title');
+  if (titleEl) titleEl.innerText = ticket.title || ticket.issue || 'Maintenance Issue';
+
+  const urgEl = document.getElementById('modal-ticket-urgency');
+  if (urgEl) {
+    const isUrgent = (ticket.urgency === 'High' || ticket.urgency === 'high' || ticket.priority === 'high');
+    urgEl.innerText = isUrgent ? 'HIGH PRIORITY' : 'MEDIUM PRIORITY';
+    urgEl.className = `badge ${isUrgent ? 'badge-rose' : 'badge-amber'}`;
+  }
+
+  const statEl = document.getElementById('modal-ticket-status');
+  if (statEl) {
+    statEl.innerText = ticket.status || 'Reported';
+    statEl.className = `badge ${ticket.status === 'Resolved' ? 'badge-emerald' : (ticket.status === 'In Progress' ? 'badge-primary' : 'badge-amber')}`;
+  }
+
+  const timeEl = document.getElementById('modal-ticket-time');
+  if (timeEl) timeEl.innerText = ticket.reportedAgo || ticket.time || 'Reported recently';
+
+  const tenantEl = document.getElementById('modal-ticket-tenant');
+  if (tenantEl) tenantEl.innerText = ticket.tenant || 'Aman Singh';
+
+  const propEl = document.getElementById('modal-ticket-prop');
+  if (propEl) propEl.innerText = ticket.property || 'Palm Grove Luxury Living';
+
+  const locEl = document.getElementById('modal-ticket-location');
+  if (locEl) locEl.innerText = ticket.location || 'Flat 402 • SG Highway';
+
+  const descEl = document.getElementById('modal-ticket-desc');
+  if (descEl) descEl.innerText = ticket.description || 'Tenant reported repair request.';
+
+  const techEl = document.getElementById('modal-ticket-tech');
+  if (techEl) techEl.innerText = (ticket.technician && ticket.technician.name) ? ticket.technician.name : 'Ramesh Kumar (Certified Technician)';
+
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeOwnerTicketDetailModal() {
+  const modal = document.getElementById('owner-ticket-detail-modal');
+  if (modal) {
+    modal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  AppState.currentInspectingTicketId = null;
+}
+
+async function handleOwnerUpdateCurrentTicket(nextStatus) {
+  const ticketId = AppState.currentInspectingTicketId;
+  if (!ticketId) return;
+
+  const t = AppState.maintenanceTickets.find(x => x.id === ticketId);
+  if (t) {
+    t.status = nextStatus;
+    t.statusColor = nextStatus === 'Resolved' ? 'green' : (nextStatus === 'In Progress' ? 'blue' : 'yellow');
+    if (nextStatus === 'Resolved') {
+      t.currentStep = 4;
+    } else if (nextStatus === 'In Progress') {
+      t.currentStep = 3;
+    } else if (nextStatus === 'Acknowledged') {
+      t.currentStep = 2;
+    }
+  }
+
+  const statEl = document.getElementById('modal-ticket-status');
+  if (statEl) {
+    statEl.innerText = nextStatus;
+    statEl.className = `badge ${nextStatus === 'Resolved' ? 'badge-emerald' : (nextStatus === 'In Progress' ? 'badge-primary' : 'badge-amber')}`;
+  }
+
+  await apiCall(`/owner/maintenance/${ticketId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: nextStatus })
+  });
+
+  renderMaintenanceTickets();
+  renderOwnerMaintenanceTickets();
+  renderOwnerNotificationsList();
+  updateOwnerSidebarBadges();
+  showToast(`Ticket #${ticketId} status updated to "${nextStatus}". Tenant notified via Relay Bot.`);
+}
+
 async function handleOwnerMaintenanceStatus(ticketId, newStatus) {
+  const t = AppState.maintenanceTickets.find(x => x.id === ticketId);
+  if (t) {
+    t.status = newStatus;
+    t.statusColor = newStatus === 'Resolved' ? 'green' : 'blue';
+  }
+
   await apiCall(`/owner/maintenance/${ticketId}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ status: newStatus })
   });
+
   showToast(`Maintenance Ticket #${ticketId} marked as ${newStatus}!`, 'success');
+  renderMaintenanceTickets();
   renderOwnerMaintenanceTickets();
+  renderOwnerNotificationsList();
+  updateOwnerSidebarBadges();
 }
 
 
@@ -2841,14 +3338,71 @@ async function handleSendMaintenanceChat(e) {
   messagesBox.appendChild(userBubble);
   messagesBox.scrollTop = messagesBox.scrollHeight;
 
+  // Create real ticket & landlord notification from chatbot
+  const tenantName = AppState.currentUser?.fullName || 'Aman Singh';
+  const shortTitle = userText.length > 35 ? userText.substring(0, 35) + '...' : userText;
+  const chatTicket = {
+    id: `maint-${Date.now()}`,
+    title: shortTitle,
+    issue: shortTitle,
+    category: 'WhatsApp/Bot Relay',
+    status: "Reported",
+    statusColor: "yellow",
+    urgency: "High",
+    priority: "high",
+    tenant: tenantName,
+    property: 'Palm Grove Luxury Living (Flat 402)',
+    location: 'Flat 402, SG Highway',
+    reportedAgo: "Just now",
+    time: "Just now",
+    technician: {
+      name: "Ramesh Kumar (Certified Technician)",
+      phone: "+91 98765 43210",
+      rating: 4.9,
+      eta: "Within 2 hours"
+    },
+    currentStep: 1,
+    timeline: [
+      { label: "Reported via Bot", time: "Just now", done: true },
+      { label: "Assigned", time: "Pending", done: false },
+      { label: "Technician Scheduled", time: "Pending", done: false },
+      { label: "In Progress", time: "Pending", done: false },
+      { label: "Resolved", time: "Pending", done: false }
+    ],
+    description: userText,
+    images: []
+  };
+  AppState.maintenanceTickets.unshift(chatTicket);
+
+  const newChatNotif = {
+    id: `notif-chat-${Date.now()}`,
+    user_id: 'usr-owner-1',
+    type: 'maintenance',
+    title: `Relay Alert: ${shortTitle}`,
+    message: `${tenantName} at Flat 402 reported via WhatsApp/Bot: "${userText}". Priority: High.`,
+    time: 'Just now',
+    read: false,
+    relatedId: chatTicket.id,
+    actionTarget: `maintenance:${chatTicket.id}`,
+    actionText: 'View Ticket',
+    tenant: tenantName,
+    property: 'Palm Grove Luxury Living (Flat 402)'
+  };
+  AppState.notifications.unshift(newChatNotif);
+
+  renderMaintenanceTickets();
+  renderOwnerMaintenanceTickets();
+  renderOwnerNotificationsList();
+  updateOwnerSidebarBadges();
+
   // Typing indicator / response
   setTimeout(async () => {
-    let botReply = `🔧 Ticket logged: "${userText}". Our certified technician Ramesh Kumar is dispatched with 48h resolution SLA.`;
+    let botReply = `🔧 Ticket logged: "${userText}". Our certified technician Ramesh Kumar is dispatched with 48h resolution SLA. Owner has been notified.`;
     
     // Call backend bot relay if available
     const botRes = await apiCall('/maintenance/relay-bot', {
       method: 'POST',
-      body: JSON.stringify({ message: userText, sender: AppState.currentUser?.fullName || 'Resident' })
+      body: JSON.stringify({ message: userText, sender: tenantName })
     });
     if (botRes && botRes.reply) {
       botReply = botRes.reply;
@@ -2867,7 +3421,7 @@ async function handleSendMaintenanceChat(e) {
   }, 600);
 }
 
-// Window Globals for new Modals & Features
+// Window Globals for Modals, Tabs & Interactive Features
 window.openRoleSelectModal = openRoleSelectModal;
 window.closeRoleSelectModal = closeRoleSelectModal;
 window.selectRoleOption = selectRoleOption;
@@ -2898,4 +3452,31 @@ window.closeStripePaymentModal = closeStripePaymentModal;
 window.executeStripeCheckout = executeStripeCheckout;
 window.toggleMaintenanceChat = toggleMaintenanceChat;
 window.handleSendMaintenanceChat = handleSendMaintenanceChat;
+
+// Owner Hub & Subpanels Globals
+window.switchOwnerTab = switchOwnerTab;
+window.toggleOwnerMobileSidebar = toggleOwnerMobileSidebar;
+window.updateOwnerSidebarBadges = updateOwnerSidebarBadges;
+window.openMaintenanceDetailModal = openMaintenanceDetailModal;
+window.closeOwnerTicketDetailModal = closeOwnerTicketDetailModal;
+window.handleOwnerUpdateCurrentTicket = handleOwnerUpdateCurrentTicket;
+window.handleOwnerMaintenanceStatus = handleOwnerMaintenanceStatus;
+window.renderOwnerNotificationsList = renderOwnerNotificationsList;
+window.markSingleNotificationRead = markSingleNotificationRead;
+window.handleOwnerApplicationAction = handleOwnerApplicationAction;
+window.openOwnerEditPropertyModal = openOwnerEditPropertyModal;
+window.closeOwnerEditPropertyModal = closeOwnerEditPropertyModal;
+window.handleSavePropertyEdit = handleSavePropertyEdit;
+window.openOwnerStatusConfirm = openOwnerStatusConfirm;
+window.closeOwnerStatusConfirmModal = closeOwnerStatusConfirmModal;
+window.executeOwnerStatusChange = executeOwnerStatusChange;
+window.openAddPropertyModal = openAddPropertyModal;
+window.closeAddPropertyModal = closeAddPropertyModal;
+
+// Roommates Interaction Globals
+window.handleConnectRoommate = handleConnectRoommate;
+window.getStableRoommateMatch = getStableRoommateMatch;
+window.renderRoommateGrid = renderRoommateGrid;
+window.renderRoommateSwiper = renderRoommateSwiper;
+
 
