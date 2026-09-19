@@ -77,7 +77,7 @@ exports.createTicket = async (req, res) => {
         { label: 'In Progress', time: 'Pending', done: false },
         { label: 'Resolved', time: 'Pending', done: false }
       ],
-      description: description || 'Issue reported via Nestora Tenant Hub.',
+      description: description || 'Issue reported via Nestera Tenant Hub.',
       location: location || 'Master Bedroom Ensuite',
       images: []
     };

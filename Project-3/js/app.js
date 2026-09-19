@@ -1,4 +1,4 @@
-/**
+﻿/**
  * NESTORA PROPTECH - CORE APPLICATION LOGIC
  * High-fidelity, reactive state, live Express & Supabase backend connectivity with resilient local fallback.
  */
@@ -21,7 +21,7 @@ async function apiCall(endpoint, options = {}) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (err) {
-    console.warn(`[Nestora API] Express server offline at ${BACKEND_URL}${endpoint}. Utilizing local resilient state.`, err.message);
+    console.warn(`[Nestera API] Express server offline at ${BACKEND_URL}${endpoint}. Utilizing local resilient state.`, err.message);
     return null;
   }
 }
@@ -65,6 +65,16 @@ const AppState = {
       return [];
     }
   })(),
+  userPreferences: (() => {
+    try {
+      const p = localStorage.getItem('nestera_user_roommate_preferences') || localStorage.getItem('nestora_user_roommate_preferences');
+      return p ? JSON.parse(p) : null;
+    } catch (e) {
+      return null;
+    }
+  })(),
+  quizCurrentStep: 1,
+  quizAnswers: {},
   checkoutProperty: null,
   checkoutDuration: 3,
   checkoutStep: 1,
@@ -118,7 +128,7 @@ const AppState = {
     {
       id: 'msg-0',
       sender: 'bot',
-      text: '👋 Greetings! I am the Nestora Maintenance Relay Bot. Type any repair issue (e.g. "geyser leaking", "ac not cooling") to dispatch a technician immediately.',
+      text: '👋 Greetings! I am the Nestera Maintenance Relay Bot. Type any repair issue (e.g. "geyser leaking", "ac not cooling") to dispatch a technician immediately.',
       time: 'Just now'
     }
   ]
@@ -129,16 +139,70 @@ document.addEventListener('DOMContentLoaded', () => {
   initApp();
 });
 
+/* ==========================================================================
+   CENTRALIZED AVATAR LOGIC (Gender-Based & Custom Avatar Hierarchy)
+   ========================================================================== */
+
+function getDefaultAvatar(gender) {
+  const g = (gender || '').toString().toLowerCase().trim();
+  if (g === 'female') {
+    return 'images/avatars/avatar-female.png';
+  }
+  if (g === 'male') {
+    return '—Pngtree—man avatar image for profile_13001882.png';
+  }
+  // 'Prefer not to say', null, undefined, or unknown
+  return 'images/avatars/avatar-neutral.svg';
+}
+
+function isCustomAvatar(avatar) {
+  if (!avatar || typeof avatar !== 'string') return false;
+  const a = avatar.toLowerCase().trim();
+  if (!a) return false;
+  const defaultPlaceholders = [
+    'pngtree',
+    'avatar-male',
+    'avatar-female',
+    'avatar-neutral',
+    '/avatar.png',
+    'avatar.png',
+    'photo-1507003211169-0a1dd7228f2d',
+    'photo-1534528741775-53994a69daeb'
+  ];
+  return !defaultPlaceholders.some(keyword => a.includes(keyword));
+}
+
+function getProfileAvatar(profile) {
+  if (!profile) return getDefaultAvatar(null);
+  const custom = profile.avatar_url || profile.avatarUrl || profile.avatar;
+  if (isCustomAvatar(custom)) {
+    return custom;
+  }
+  return getDefaultAvatar(profile.gender);
+}
+
+window.getDefaultAvatar = getDefaultAvatar;
+window.isCustomAvatar = isCustomAvatar;
+window.getProfileAvatar = getProfileAvatar;
+
 async function initApp() {
+  if (AppState.currentUser) {
+    if (!isCustomAvatar(AppState.currentUser.avatarUrl)) {
+      AppState.currentUser.avatarUrl = getDefaultAvatar(AppState.currentUser.gender);
+    }
+    localStorage.setItem('nestora_auth_user', JSON.stringify(AppState.currentUser));
+  }
   initPermanentRoleBadge();
   updateAuthUI();
   await loadLiveBackendData();
+  await loadUserRoommatePreferences();
 
   renderShowcaseProperties();
   renderDiscoveryProperties();
   renderDiscoveryMapPins();
   renderRoommateSwiper();
   renderRoommateGrid();
+  updateQuizBannerUI();
   renderSharedExpenses();
   renderMaintenanceTickets();
   renderOwnerTable();
@@ -161,6 +225,7 @@ function updateAuthUI() {
   const userName = user ? (user.fullName || user.name || user.email?.split('@')[0] || 'Resident') : 'Resident';
   const roleStr = (user?.role || AppState.permanentRole || 'tenant').toLowerCase();
   const isOwner = roleStr === 'owner';
+  const currentAvatar = getProfileAvatar(user);
 
   // Greeting in Tenant Dashboard
   const dashGreeting = document.getElementById('dash-greeting-heading');
@@ -180,8 +245,8 @@ function updateAuthUI() {
     navName.innerText = user ? userName : 'Sign In';
   }
   const navAvatar = document.getElementById('user-nav-avatar');
-  if (navAvatar && user && user.avatarUrl) {
-    navAvatar.src = user.avatarUrl;
+  if (navAvatar) {
+    navAvatar.src = currentAvatar;
   }
 
   // Role Badge in Navbar
@@ -206,8 +271,30 @@ function updateAuthUI() {
   const profPermRole = document.getElementById('profile-modal-perm-role');
   if (profPermRole) profPermRole.innerText = `Locked & Verified (${isOwner ? 'Owner' : 'Tenant'})`;
 
+  const profGender = document.getElementById('profile-modal-gender');
+  if (profGender) profGender.innerText = user?.gender ? user.gender : 'Not specified';
+
+  const profDob = document.getElementById('profile-modal-dob');
+  if (profDob) profDob.innerText = (user?.dateOfBirth || user?.date_of_birth) ? (user.dateOfBirth || user.date_of_birth) : 'Not specified';
+
   const profAvatar = document.getElementById('profile-modal-avatar');
-  if (profAvatar && user && user.avatarUrl) profAvatar.src = user.avatarUrl;
+  if (profAvatar) {
+    profAvatar.src = currentAvatar;
+  }
+
+  // Owner dashboard profile elements
+  const ownerProfAvatar = document.getElementById('owner-profile-avatar');
+  if (ownerProfAvatar) {
+    ownerProfAvatar.src = currentAvatar;
+  }
+  const ownerProfName = document.getElementById('owner-profile-name');
+  if (ownerProfName && user) {
+    ownerProfName.innerText = userName;
+  }
+  const ownerProfEmail = document.getElementById('owner-profile-email');
+  if (ownerProfEmail && user?.email) {
+    ownerProfEmail.innerText = user.email;
+  }
 
   // Constitution Preview
   const rcPrevUser = document.getElementById('rc-prev-user-name');
@@ -223,7 +310,7 @@ function handleLogout() {
   closeProfileModal();
   updateAuthUI();
   navigateTo('landing');
-  showToast('Signed out of Nestora. All user state purged.', 'info');
+  showToast('Signed out of Nestera. All user state purged.', 'info');
 }
 
 async function loadLiveBackendData() {
@@ -239,6 +326,27 @@ async function loadLiveBackendData() {
   const pvRes = await apiCall('/proof-vault/prop-1');
   if (pvRes && pvRes.data && pvRes.data.length > 0) {
     AppState.proofVaultItems = pvRes.data;
+  }
+
+  // 3. User session profile refresh
+  if (AppState.currentUser && AppState.currentUser.email) {
+    try {
+      const meRes = await apiCall(`/auth/me?email=${encodeURIComponent(AppState.currentUser.email)}`);
+      if (meRes && meRes.user) {
+        AppState.currentUser = {
+          ...AppState.currentUser,
+          ...meRes.user,
+          gender: meRes.user.gender || AppState.currentUser.gender || null,
+          date_of_birth: meRes.user.date_of_birth || meRes.user.dateOfBirth || AppState.currentUser.date_of_birth || null,
+          dateOfBirth: meRes.user.date_of_birth || meRes.user.dateOfBirth || AppState.currentUser.dateOfBirth || null
+        };
+        AppState.currentUser.avatarUrl = getProfileAvatar(AppState.currentUser);
+        localStorage.setItem('nestora_auth_user', JSON.stringify(AppState.currentUser));
+        updateAuthUI();
+      }
+    } catch (e) {
+      console.warn('Could not refresh session profile:', e);
+    }
   }
 }
 
@@ -851,7 +959,7 @@ function renderAgreementPreview(prop) {
 }
 
 function triggerScheduleVisit() {
-  showToast('Visit scheduled! Landlord Vikrambhai Patel will confirm via WhatsApp & Nestora.');
+  showToast('Visit scheduled! Landlord Vikrambhai Patel will confirm via WhatsApp & Nestera.');
 }
 
 function triggerApplyNow() {
@@ -863,23 +971,306 @@ function triggerContactOwner() {
 }
 
 /* ==========================================================================
-   4. ROOMMATE MATCHING HUB ("NESTERA MATCH")
+   4. ROOMMATE COMPATIBILITY QUIZ & DYNAMIC MATCHING ENGINE
    ========================================================================== */
+
+const QUIZ_STEPS_META = [
+  { step: 1, tag: 'Step 1 of 7 • Food & Dining', title: 'Food & Dining Preferences' },
+  { step: 2, tag: 'Step 2 of 7 • Habits & Living', title: 'Habits & Social Living' },
+  { step: 3, tag: 'Step 3 of 7 • Monthly Budget', title: 'Monthly Budget Calibrator' },
+  { step: 4, tag: 'Step 4 of 7 • Personality & Goals', title: 'Personality, Study & Boundaries' },
+  { step: 5, tag: 'Step 5 of 7 • Sleep & Noise', title: 'Sleep Hours & Sound Environment' },
+  { step: 6, tag: 'Step 6 of 7 • Roommate Preferences', title: 'Roommate Age, Gender & Role' },
+  { step: 7, tag: 'Step 7 of 7 • Cleanliness, Space & Pets', title: 'Pets, Tidiness & Personal Space' },
+  { step: 8, tag: 'Step 8 • Review & Submit', title: 'Review & Compatibility Engine' }
+];
+
+async function loadUserRoommatePreferences() {
+  try {
+    const cached = localStorage.getItem('nestera_user_roommate_preferences') || localStorage.getItem('nestora_user_roommate_preferences');
+    if (cached) {
+      AppState.userPreferences = JSON.parse(cached);
+    }
+  } catch (e) {}
+
+  const userId = AppState.currentUser?.id;
+  try {
+    const res = await fetch(`http://localhost:5000/api/roommates/preferences${userId ? `?userId=${userId}` : ''}`);
+    if (res.ok) {
+      const body = await res.json();
+      if (body.success && body.data) {
+        AppState.userPreferences = body.data;
+        localStorage.setItem('nestera_user_roommate_preferences', JSON.stringify(body.data));
+      }
+    }
+  } catch (err) {
+    // Offline or backend running standalone, local persistence remains active
+  }
+
+  updateQuizBannerUI();
+}
+
+function updateQuizBannerUI() {
+  const isDone = Boolean(AppState.userPreferences && AppState.userPreferences.quiz_completed);
+  const pillText = document.getElementById('quiz-hero-pill-text');
+  const dot = document.getElementById('quiz-hero-pulse-dot');
+  const title = document.getElementById('quiz-hero-title');
+  const sub = document.getElementById('quiz-hero-sub');
+  const btnText = document.getElementById('btn-quiz-cta-text');
+  const uptodate = document.getElementById('quiz-hero-uptodate');
+  const timestamp = document.getElementById('quiz-hero-timestamp');
+
+  if (isDone) {
+    if (pillText) pillText.innerText = '✓ Preferences Active';
+    if (dot) dot.classList.add('dot-completed');
+    if (title) title.innerText = 'Retake Compatibility Quiz';
+    if (sub) sub.innerText = 'Your lifestyle answers are calculating personalized match scores across all roommate profiles.';
+    if (btnText) btnText.innerText = 'Retake Quiz ↻';
+    if (uptodate) {
+      uptodate.style.display = 'inline-flex';
+      if (timestamp && AppState.userPreferences.updated_at) {
+        const d = new Date(AppState.userPreferences.updated_at);
+        timestamp.innerText = `(Updated ${d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })})`;
+      }
+    }
+  } else {
+    if (pillText) pillText.innerText = 'Quiz Not Completed';
+    if (dot) dot.classList.remove('dot-completed');
+    if (title) title.innerText = 'Take Compatibility Quiz';
+    if (sub) sub.innerText = 'Answer a few questions about your lifestyle and preferences to find roommates who match you better.';
+    if (btnText) btnText.innerText = 'Take the Quiz →';
+    if (uptodate) uptodate.style.display = 'none';
+  }
+}
+
+function getCalculatedRoommateMatch(m) {
+  if (AppState.userPreferences && AppState.userPreferences.quiz_completed && window.NesteraCompatibility) {
+    const res = window.NesteraCompatibility.calculateCompatibility(AppState.userPreferences, m);
+    m._calcResult = res;
+    m.compatibility = res.percentage;
+    return res.percentage;
+  }
+  m._calcResult = null;
+  return getStableRoommateMatch(m);
+}
 
 function getStableRoommateMatch(m) {
   if (m.compatibility && m.compatibility >= 61 && m.compatibility <= 98) {
     return m.compatibility;
   }
-  // Deterministic calculation based on ID / name string hash - stable across renders & reloads
   const str = `${m.id || ''}-${m.name || ''}`;
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = (hash << 5) - hash + str.charCodeAt(i);
     hash |= 0;
   }
-  const score = 65 + (Math.abs(hash) % 31); // Always in 65% - 95% range
+  const score = 65 + (Math.abs(hash) % 31);
   m.compatibility = score;
   return score;
+}
+
+function openCompatibilityQuiz(step = 1) {
+  AppState.quizCurrentStep = step;
+
+  if (AppState.userPreferences) {
+    AppState.quizAnswers = { ...AppState.userPreferences };
+  } else {
+    AppState.quizAnswers = {
+      monthly_budget: 12000,
+      food_preference_flexibility: 'No',
+      roommate_gender_preference: 'Any',
+      ...AppState.quizAnswers
+    };
+  }
+
+  syncQuizDOMWithAnswers();
+  showQuizStep(step);
+
+  const modal = document.getElementById('roommate-quiz-modal');
+  if (modal) {
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeCompatibilityQuiz() {
+  const modal = document.getElementById('roommate-quiz-modal');
+  if (modal) {
+    modal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+}
+
+function showQuizStep(stepNum) {
+  AppState.quizCurrentStep = stepNum;
+
+  for (let i = 1; i <= 8; i++) {
+    const p = document.getElementById(`quiz-step-${i}`);
+    if (p) p.style.display = i === stepNum ? 'block' : 'none';
+  }
+
+  const meta = QUIZ_STEPS_META.find(m => m.step === stepNum) || QUIZ_STEPS_META[0];
+  const tag = document.getElementById('quiz-step-indicator');
+  const title = document.getElementById('quiz-step-title');
+  const fill = document.getElementById('quiz-progress-fill');
+
+  if (tag) tag.innerText = meta.tag;
+  if (title) title.innerText = meta.title;
+  if (fill) fill.style.width = `${Math.round((stepNum / 8) * 100)}%`;
+
+  const btnBack = document.getElementById('quiz-btn-back');
+  const btnNext = document.getElementById('quiz-btn-next');
+  const btnSubmit = document.getElementById('quiz-btn-submit');
+
+  if (btnBack) btnBack.style.display = stepNum > 1 ? 'inline-flex' : 'none';
+  if (btnNext) btnNext.style.display = stepNum < 8 ? 'inline-flex' : 'none';
+  if (btnSubmit) btnSubmit.style.display = stepNum === 8 ? 'inline-flex' : 'none';
+
+  const body = document.getElementById('quiz-modal-body');
+  if (body) body.scrollTop = 0;
+}
+
+function selectQuizOption(field, value, cardEl) {
+  AppState.quizAnswers[field] = value;
+
+  const grid = cardEl.closest('.quiz-options-grid');
+  if (grid) {
+    grid.querySelectorAll('.quiz-option-card').forEach(c => c.classList.remove('selected'));
+  }
+  cardEl.classList.add('selected');
+}
+
+function handleQuizBudgetInput(val) {
+  const num = Number(val) || 0;
+  AppState.quizAnswers.monthly_budget = num;
+  const display = document.getElementById('quiz-budget-display');
+  if (display) {
+    display.innerText = `Monthly Budget: ₹${num.toLocaleString('en-IN')}`;
+  }
+}
+
+function syncQuizDOMWithAnswers() {
+  const answers = AppState.quizAnswers;
+
+  document.querySelectorAll('.quiz-options-grid').forEach(grid => {
+    const field = grid.getAttribute('data-field');
+    if (!field) return;
+    const currentVal = answers[field];
+    grid.querySelectorAll('.quiz-option-card').forEach(card => {
+      card.classList.remove('selected');
+      const text = card.innerText || '';
+      if (currentVal && text.includes(currentVal)) {
+        card.classList.add('selected');
+      }
+    });
+  });
+
+  const slider = document.getElementById('quiz-budget-slider');
+  const display = document.getElementById('quiz-budget-display');
+  const budget = answers.monthly_budget !== undefined ? answers.monthly_budget : 12000;
+  if (slider) slider.value = budget;
+  if (display) display.innerText = `Monthly Budget: ₹${Number(budget).toLocaleString('en-IN')}`;
+}
+
+function validateQuizStep(stepNum) {
+  const ans = AppState.quizAnswers;
+  const requiredByStep = {
+    1: ['food_preference', 'food_preference_flexibility', 'eating_out_frequency'],
+    2: ['smoking_frequency', 'drinking_frequency'],
+    3: ['monthly_budget'],
+    4: ['personality_type', 'relationship_status', 'roommate_relationship_preference', 'biggest_roommate_concern', 'study_location_preference'],
+    5: ['sleep_schedule', 'sleep_environment_preference'],
+    6: ['roommate_gender_preference', 'roommate_age_preference', 'occupation'],
+    7: ['pet_preference', 'cleanliness_level', 'personal_space_importance']
+  };
+
+  const fields = requiredByStep[stepNum] || [];
+  for (const f of fields) {
+    if (ans[f] === undefined || ans[f] === null || ans[f] === '') {
+      showToast(`Please answer all questions before proceeding.`, 'warning');
+      return false;
+    }
+  }
+  return true;
+}
+
+function handleQuizNextStep() {
+  if (!validateQuizStep(AppState.quizCurrentStep)) return;
+
+  if (AppState.quizCurrentStep < 7) {
+    showQuizStep(AppState.quizCurrentStep + 1);
+  } else if (AppState.quizCurrentStep === 7) {
+    renderQuizReviewSummary();
+    showQuizStep(8);
+  }
+}
+
+function handleQuizPrevStep() {
+  if (AppState.quizCurrentStep > 1) {
+    showQuizStep(AppState.quizCurrentStep - 1);
+  }
+}
+
+function renderQuizReviewSummary() {
+  const grid = document.getElementById('quiz-review-summary-grid');
+  if (!grid) return;
+
+  const a = AppState.quizAnswers;
+  const items = [
+    { label: 'Food Preference', val: `${a.food_preference || '—'} (${a.food_preference_flexibility === 'Yes' ? 'Strict' : 'Flexible'})` },
+    { label: 'Eating Out', val: a.eating_out_frequency || '—' },
+    { label: 'Monthly Budget', val: `₹${Number(a.monthly_budget || 12000).toLocaleString('en-IN')}` },
+    { label: 'Smoking Habit', val: a.smoking_frequency || '—' },
+    { label: 'Drinking Habit', val: a.drinking_frequency || '—' },
+    { label: 'Personality', val: `${a.personality_type || '—'} • ${a.relationship_status || 'Single'}` },
+    { label: 'Roommate Bond', val: a.roommate_relationship_preference || '—' },
+    { label: 'Sleep Routine', val: a.sleep_schedule || '—' },
+    { label: 'Cleanliness', val: a.cleanliness_level || '—' },
+    { label: 'Personal Space', val: a.personal_space_importance || '—' },
+    { label: 'Pet Tolerance', val: a.pet_preference || '—' },
+    { label: 'Roommate Pref', val: `${a.roommate_gender_preference || 'Any'} • Age ${a.roommate_age_preference || '17–25'}` }
+  ];
+
+  grid.innerHTML = items.map(item => `
+    <div class="quiz-review-card">
+      <div class="quiz-review-label">${item.label}</div>
+      <div class="quiz-review-val">${item.val}</div>
+    </div>
+  `).join('');
+}
+
+async function submitCompatibilityQuiz() {
+  showToast('Calculating your roommate matches...');
+
+  const payload = {
+    ...AppState.quizAnswers,
+    user_id: AppState.currentUser?.id || null,
+    monthly_budget: Number(AppState.quizAnswers.monthly_budget) || 12000,
+    quiz_completed: true,
+    updated_at: new Date().toISOString()
+  };
+
+  AppState.userPreferences = payload;
+  try {
+    localStorage.setItem('nestera_user_roommate_preferences', JSON.stringify(payload));
+  } catch (e) {}
+
+  try {
+    await fetch('http://localhost:5000/api/roommates/preferences', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (err) {
+    console.warn('Backend sync warning (persisted locally):', err);
+  }
+
+  closeCompatibilityQuiz();
+  showToast('Your compatibility matches are ready!', 'success');
+  updateQuizBannerUI();
+
+  renderRoommateSwiper();
+  renderRoommateGrid();
 }
 
 function renderRoommateSwiper() {
@@ -888,14 +1279,15 @@ function renderRoommateSwiper() {
 
   const mates = window.NESTORA_DATA.roommates;
   const current = mates[AppState.roommateCardIndex % mates.length];
-  const compatScore = getStableRoommateMatch(current);
+  const compatScore = getCalculatedRoommateMatch(current);
   const isAccepted = AppState.acceptedRoommates.includes(current.id);
+  const hasQuiz = Boolean(AppState.userPreferences && AppState.userPreferences.quiz_completed);
 
   container.innerHTML = `
     <div class="tinder-card" id="active-swipe-card">
       <div class="tinder-card-photo-wrap">
-        <img src="${current.avatar}" alt="${current.name}" class="tinder-photo" />
-        <div class="tinder-compatibility-badge">
+        <img src="${getProfileAvatar(current)}" alt="${current.name}" class="tinder-photo" />
+        <div class="tinder-compatibility-badge ${!hasQuiz ? 'compat-badge-demo' : ''}">
           <span>❤️ ${compatScore}% Match</span>
         </div>
         ${isAccepted ? '<span class="badge badge-emerald" style="position:absolute; top:12px; left:12px; z-index:5;">✓ Connected</span>' : ''}
@@ -970,7 +1362,7 @@ function handleConnectRoommate(roommateId) {
 
 function showMatchCelebration(roommate) {
   if (!roommate) return;
-  const score = getStableRoommateMatch(roommate);
+  const score = getCalculatedRoommateMatch(roommate);
 
   if (!AppState.acceptedRoommates.includes(roommate.id)) {
     AppState.acceptedRoommates.push(roommate.id);
@@ -1013,16 +1405,21 @@ function renderRoommateGrid() {
   if (!container) return;
 
   const mates = window.NESTORA_DATA.roommates;
+  const hasQuiz = Boolean(AppState.userPreferences && AppState.userPreferences.quiz_completed);
+
   container.innerHTML = mates.map(m => {
     const isAccepted = AppState.acceptedRoommates.includes(m.id);
-    const score = getStableRoommateMatch(m);
+    const score = getCalculatedRoommateMatch(m);
 
     return `
     <div class="roommate-mini-card">
       <div style="height:200px; position:relative; overflow:hidden;">
-        <img src="${m.avatar}" alt="${m.name}" style="width:100%; height:100%; object-fit:cover;" />
+        <img src="${getProfileAvatar(m)}" alt="${m.name}" style="width:100%; height:100%; object-fit:cover;" />
         <span class="badge badge-verified" style="position:absolute; top:12px; left:12px;">✓ Verified ID</span>
-        <span class="badge badge-primary" style="position:absolute; top:12px; right:12px;">❤️ ${score}% Match</span>
+        ${hasQuiz 
+          ? `<span class="badge badge-primary" style="position:absolute; top:12px; right:12px;">❤️ ${score}% Match</span>`
+          : `<span class="badge compat-badge-demo" style="position:absolute; top:12px; right:12px; cursor:pointer;" onclick="openCompatibilityQuiz()" title="Take Compatibility Quiz for dynamic score">🎯 ${score}% (Demo)</span>`
+        }
         ${isAccepted ? '<span class="badge badge-emerald" style="position:absolute; bottom:10px; left:12px;">✓ Connected</span>' : ''}
       </div>
       <div style="padding:20px;">
@@ -1053,17 +1450,26 @@ function renderRoommateGrid() {
 function openRoommateModal(roommateId) {
   const mate = window.NESTORA_DATA.roommates.find(m => m.id === roommateId) || window.NESTORA_DATA.roommates[0];
   AppState.selectedRoommate = mate;
-  const score = getStableRoommateMatch(mate);
+  const score = getCalculatedRoommateMatch(mate);
   const isAccepted = AppState.acceptedRoommates.includes(mate.id);
+  const hasQuiz = Boolean(AppState.userPreferences && AppState.userPreferences.quiz_completed);
+  const calcResult = mate._calcResult;
 
   const modal = document.getElementById('roommate-modal');
   if (!modal) return;
 
   const body = document.getElementById('roommate-modal-body');
   if (body) {
+    const matchedList = calcResult?.matchedFactors || mate.whyCompatible || [
+      'Both prefer quiet evening study sessions',
+      'High cleanliness standards match',
+      'Similar campus commute times'
+    ];
+    const diffList = calcResult?.differences || [];
+
     body.innerHTML = `
       <div class="profile-hero-header">
-        <img src="${mate.avatar}" alt="${mate.name}" class="profile-avatar-large" />
+        <img src="${getProfileAvatar(mate)}" alt="${mate.name}" class="profile-avatar-large" />
         <div class="profile-meta-wrap">
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
             <h3>${mate.name}, ${mate.age}</h3>
@@ -1073,22 +1479,42 @@ function openRoommateModal(roommateId) {
           <p style="font-size:0.95rem; color:var(--text-secondary); margin-bottom:6px;">${mate.institution}</p>
           <div style="display:flex; gap:16px; font-size:0.85rem; font-weight:700; flex-wrap:wrap;">
             <span style="color:var(--primary)">Target Budget: ${mate.budget}</span>
-            <span style="color:var(--accent-emerald-dark)">❤️ ${score}% Compatibility</span>
+            <span style="color:var(--accent-emerald-dark)">❤️ ${score}% Compatibility ${hasQuiz ? '(Personalized)' : '(Demo)'}</span>
             ${isAccepted ? '<span style="color:var(--accent-emerald-dark);">Status: Connected</span>' : ''}
           </div>
         </div>
       </div>
 
-      <div class="why-compatible-box">
-        <h4>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-          Why You're Compatible (${score}% Match)
-        </h4>
-        <ul class="why-list">
-          ${mate.whyCompatible.map(item => `
-            <li class="why-item"><span style="color:var(--accent-emerald-dark)">✓</span> ${item}</li>
+      ${!hasQuiz ? `
+        <div style="background:#EEF2FF; border:1.5px solid #C7D2FE; border-radius:12px; padding:14px 18px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div>
+            <strong style="color:var(--primary); font-size:0.92rem;">Personalized Match Score Unavailable</strong>
+            <p style="margin:2px 0 0 0; font-size:0.82rem; color:var(--text-secondary);">Complete the Compatibility Quiz to calculate your personalized compatibility with ${mate.name}.</p>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="closeRoommateModal(); openCompatibilityQuiz();">Take Quiz →</button>
+        </div>
+      ` : ''}
+
+      <div class="match-factors-box">
+        <div class="match-factors-title">
+          <span>❤️</span>
+          <span>Why You Match (${score}% Compatibility)</span>
+        </div>
+        <ul class="match-factors-list">
+          ${matchedList.map(item => `
+            <li class="match-factor-item"><span style="color:var(--accent-emerald-dark)">✓</span> <span>${item}</span></li>
           `).join('')}
         </ul>
+        ${diffList.length > 0 ? `
+          <div style="font-size:0.78rem; font-weight:800; color:#B45309; text-transform:uppercase; margin:14px 0 8px 0; letter-spacing:0.04em;">
+            Possible Differences
+          </div>
+          <ul class="diff-factors-list">
+            ${diffList.map(item => `
+              <li class="diff-factor-item"><span>•</span> <span>${item}</span></li>
+            `).join('')}
+          </ul>
+        ` : ''}
       </div>
 
       <div style="margin-bottom:24px;">
@@ -1227,7 +1653,7 @@ function submitNewSplitExpense(e) {
   AppState.sharedExpenses.unshift(newExp);
   renderSharedExpenses();
   closeSplitExpenseModal();
-  showToast(`Added ₹${amount.toLocaleString('en-IN')} expense! ${roommate} notified via Nestora.`);
+  showToast(`Added ₹${amount.toLocaleString('en-IN')} expense! ${roommate} notified via Nestera.`);
 }
 
 function triggerPayRentModal() {
@@ -1483,7 +1909,7 @@ function triggerDownloadAgreement() {
 }
 
 function triggerClarificationModal() {
-  showToast('Clarification request sent to Landlord & Nestora Legal Concierge.');
+  showToast('Clarification request sent to Landlord & Nestera Legal Concierge.');
 }
 
 function triggerSignAgreement() {
@@ -1887,7 +2313,7 @@ async function loadOwnerApplications() {
         <div>
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
             <div style="display: flex; gap: 10px; align-items: center;">
-              <img src="${app.applicant_avatar || '—Pngtree—man avatar image for profile_13001882.png'}" alt="${app.applicant_name}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-light);" />
+              <img src="${getProfileAvatar({ avatar_url: app.applicant_avatar, gender: app.gender })}" alt="${app.applicant_name}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-light);" />
               <div>
                 <strong style="font-size: 0.95rem; display: block;">${app.applicant_name}</strong>
                 <span style="font-size: 0.75rem; color: var(--text-muted);">${app.applicant_college || 'Student'}</span>
@@ -2293,7 +2719,7 @@ function submitNewOwnerProperty(e) {
   window.NESTORA_DATA.ownerData.properties.unshift(newUnit);
   renderOwnerTable();
   closeAddPropertyModal();
-  showToast(`Property listed! Nestora inspection team will verify within 24 hours.`);
+  showToast(`Property listed! Nestera inspection team will verify within 24 hours.`);
 }
 
 /* ==========================================================================
@@ -2588,24 +3014,36 @@ function openAuthModal(mode = 'signup') {
   const phoneGroup = document.getElementById('auth-phone-group');
   const confirmGroup = document.getElementById('auth-confirm-group');
   const termsGroup = document.getElementById('auth-terms-group');
+  const genderGroup = document.getElementById('auth-gender-group');
+  const dobGroup = document.getElementById('auth-dob-group');
+  const dobInput = document.getElementById('auth-dob-input');
+
+  if (dobInput) {
+    dobInput.max = new Date().toISOString().split('T')[0];
+  }
 
   if (mode === 'signup') {
-    if (title) title.innerText = 'Create your Nestora account';
+    if (title) title.innerText = 'Create your Nestera account';
     if (submitBtn) submitBtn.innerText = 'Create Account';
     if (prompt) prompt.innerText = 'Already have an account?';
     if (link) link.innerText = 'Sign In';
     if (nameGroup) nameGroup.style.display = 'block';
     if (phoneGroup) phoneGroup.style.display = 'block';
     if (confirmGroup) confirmGroup.style.display = 'block';
+    if (genderGroup) genderGroup.style.display = 'block';
+    if (dobGroup) dobGroup.style.display = 'block';
     if (termsGroup) termsGroup.style.display = 'flex';
   } else {
-    if (title) title.innerText = 'Sign in to Nestora';
+    // Strictly Sign In: ONLY email & password. Hide Gender, DOB, Name, Phone, Confirm Password!
+    if (title) title.innerText = 'Sign in to Nestera';
     if (submitBtn) submitBtn.innerText = 'Sign In';
     if (prompt) prompt.innerText = "Don't have an account?";
     if (link) link.innerText = 'Register';
     if (nameGroup) nameGroup.style.display = 'none';
     if (phoneGroup) phoneGroup.style.display = 'none';
     if (confirmGroup) confirmGroup.style.display = 'none';
+    if (genderGroup) genderGroup.style.display = 'none';
+    if (dobGroup) dobGroup.style.display = 'none';
     if (termsGroup) termsGroup.style.display = 'none';
   }
 
@@ -2631,11 +3069,22 @@ async function handleAuthSubmit(e) {
   const password = document.getElementById('auth-password-input').value;
   const fullName = document.getElementById('auth-fullname-input')?.value.trim();
   const confirmPassword = document.getElementById('auth-confirm-input')?.value;
+  const gender = document.getElementById('auth-gender-select')?.value;
+  const dob = document.getElementById('auth-dob-input')?.value;
   const role = AppState.selectedPreRole || 'tenant';
 
   if (AppState.authMode === 'signup') {
     if (!fullName) {
       showToast('Please enter your full legal name', 'error');
+      return;
+    }
+    if (!gender) {
+      showToast('Please select your gender', 'error');
+      return;
+    }
+    const today = new Date().toISOString().split('T')[0];
+    if (!dob || dob > today) {
+      showToast('Please select a valid Date of Birth (cannot be in the future)', 'error');
       return;
     }
     if (password !== confirmPassword) {
@@ -2651,7 +3100,16 @@ async function handleAuthSubmit(e) {
   // Submit to Express backend & Supabase Auth
   const endpoint = AppState.authMode === 'signup' ? '/auth/register' : '/auth/login';
   const payload = AppState.authMode === 'signup' 
-    ? { email, password, role, fullName }
+    ? { 
+        email, 
+        password, 
+        role, 
+        fullName,
+        phone: document.getElementById('auth-phone-input')?.value || '',
+        gender,
+        date_of_birth: dob,
+        dateOfBirth: dob
+      }
     : { email, password };
 
   const res = await apiCall(endpoint, {
@@ -2662,17 +3120,24 @@ async function handleAuthSubmit(e) {
   let authenticatedUser = null;
   if (res && res.user) {
     authenticatedUser = res.user;
+    if (!isCustomAvatar(authenticatedUser.avatarUrl || authenticatedUser.avatar_url)) {
+      authenticatedUser.avatarUrl = getDefaultAvatar(authenticatedUser.gender);
+    }
   } else {
     // Graceful offline fallback with user entered credentials
     const fallbackName = AppState.authMode === 'signup' && fullName 
       ? fullName 
       : (email.split('@')[0] ? email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1) : 'Aman Singh');
+    const selectedGender = AppState.authMode === 'signup' ? gender : null;
     authenticatedUser = {
       id: `usr-${Date.now()}`,
       email: email,
       fullName: fallbackName,
       role: role,
-      avatarUrl: '—Pngtree—man avatar image for profile_13001882.png'
+      gender: selectedGender,
+      date_of_birth: AppState.authMode === 'signup' ? dob : null,
+      dateOfBirth: AppState.authMode === 'signup' ? dob : null,
+      avatarUrl: getDefaultAvatar(selectedGender)
     };
   }
 
@@ -2694,7 +3159,98 @@ async function handleAuthSubmit(e) {
     navigateTo('dashboard');
     showToast(`Greetings, ${authenticatedUser.fullName}! Signed in as verified Tenant.`, 'success');
   }
+
+  // Post-login check for existing users with missing gender or DOB
+  if (AppState.authMode === 'login' && (!authenticatedUser.gender || (!authenticatedUser.dateOfBirth && !authenticatedUser.date_of_birth))) {
+    setTimeout(() => {
+      openProfileCompletionModal();
+    }, 600);
+  }
 }
+
+function openProfileCompletionModal() {
+  const modal = document.getElementById('profile-completion-modal');
+  if (!modal) return;
+  const genderSelect = document.getElementById('completion-gender-select');
+  const dobInput = document.getElementById('completion-dob-input');
+  if (dobInput) {
+    dobInput.max = new Date().toISOString().split('T')[0];
+    if (AppState.currentUser && (AppState.currentUser.dateOfBirth || AppState.currentUser.date_of_birth)) {
+      dobInput.value = AppState.currentUser.dateOfBirth || AppState.currentUser.date_of_birth;
+    }
+  }
+  if (genderSelect) {
+    if (AppState.currentUser && AppState.currentUser.gender) {
+      genderSelect.value = AppState.currentUser.gender;
+    }
+    // Live update avatar if user changes gender dropdown
+    genderSelect.onchange = (e) => {
+      const selected = e.target.value;
+      if (AppState.currentUser && !isCustomAvatar(AppState.currentUser.avatarUrl)) {
+        AppState.currentUser.gender = selected;
+        AppState.currentUser.avatarUrl = getDefaultAvatar(selected);
+        updateAuthUI();
+      }
+    };
+  }
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeProfileCompletionModal() {
+  const modal = document.getElementById('profile-completion-modal');
+  if (modal) {
+    modal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+}
+
+async function submitProfileCompletion(e) {
+  e.preventDefault();
+  const gender = document.getElementById('completion-gender-select')?.value;
+  const dob = document.getElementById('completion-dob-input')?.value;
+  const today = new Date().toISOString().split('T')[0];
+
+  if (!gender) {
+    showToast('Please select your gender', 'error');
+    return;
+  }
+  if (!dob || dob > today) {
+    showToast('Date of Birth cannot be in the future', 'error');
+    return;
+  }
+
+  const userId = AppState.currentUser?.id;
+  const email = AppState.currentUser?.email;
+
+  // Send update to Express backend / Supabase
+  try {
+    await apiCall('/auth/profile', {
+      method: 'PATCH',
+      body: JSON.stringify({ userId, email, gender, date_of_birth: dob, dateOfBirth: dob })
+    });
+  } catch (err) {
+    console.warn('Profile update error:', err);
+  }
+
+  if (AppState.currentUser) {
+    AppState.currentUser.gender = gender;
+    AppState.currentUser.date_of_birth = dob;
+    AppState.currentUser.dateOfBirth = dob;
+    if (!isCustomAvatar(AppState.currentUser.avatarUrl)) {
+      AppState.currentUser.avatarUrl = getDefaultAvatar(gender);
+    }
+    localStorage.setItem('nestora_auth_user', JSON.stringify(AppState.currentUser));
+  }
+
+  updateAuthUI();
+  closeProfileCompletionModal();
+  showToast('Profile completed successfully! Your details are stored in Supabase.', 'success');
+}
+
+window.openProfileCompletionModal = openProfileCompletionModal;
+window.closeProfileCompletionModal = closeProfileCompletionModal;
+window.submitProfileCompletion = submitProfileCompletion;
 
 /* ==========================================================================
    14. ACCOMMODATION CHECKOUT & SHORT-STAY BOOKING FLOW (Prompt Section 7)
@@ -3064,7 +3620,7 @@ async function submitNewProofItem(e) {
   const item = document.getElementById('pv-form-item').value;
   const condition = document.getElementById('pv-form-condition').value;
   const meter = document.getElementById('pv-form-meter').value;
-  const notes = document.getElementById('pv-form-notes').value || 'Inspected and stamped on Nestora.';
+  const notes = document.getElementById('pv-form-notes').value || 'Inspected and stamped on Nestera.';
 
   const newItem = {
     id: `pv-${Date.now()}`,
@@ -3103,7 +3659,7 @@ function acknowledgeProofItem(id) {
 }
 
 function disputeProofItem(id) {
-  showToast(`Dispute logged. Nestora Concierge mediator assigned.`);
+  showToast(`Dispute logged. Nestera Concierge mediator assigned.`);
 }
 
 /* ==========================================================================

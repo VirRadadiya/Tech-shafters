@@ -1,6 +1,6 @@
-# Nestora PropTech — Full Stack Platform
+# Nestera PropTech — Full Stack Platform
 
-Nestora is a next-generation PropTech platform designed for students, young adults, and first-time renters to find, compare, lease, share, and manage residential and commercial spaces with radical cost transparency and zero hidden brokerage.
+Nestera is a next-generation PropTech platform designed for students, young adults, and first-time renters to find, compare, lease, share, and manage residential and commercial spaces with radical cost transparency and zero hidden brokerage.
 
 ---
 

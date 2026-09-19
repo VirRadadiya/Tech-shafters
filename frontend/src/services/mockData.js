@@ -1,4 +1,4 @@
-// Embedded fallback mock dataset for offline / direct client-side resilience
+﻿// Embedded fallback mock dataset for offline / direct client-side resilience
 export const MOCK_DATA = {
   currentUser: {
     name: "Aman Singh",
@@ -110,7 +110,7 @@ export const MOCK_DATA = {
         phone: "+91 94280 XXXXX",
         responseRate: "98%",
         responseTime: "< 15 mins",
-        experience: "4 years hosting on Nestora"
+        experience: "4 years hosting on Nestera"
       },
       simplifiedAgreement: {
         rentAmount: "₹18,000 / month due on 5th",
@@ -324,7 +324,7 @@ export const MOCK_DATA = {
         phone: "+91 97270 XXXXX",
         responseRate: "99%",
         responseTime: "< 15 mins",
-        experience: "3 years on Nestora"
+        experience: "3 years on Nestera"
       },
       simplifiedAgreement: {
         rentAmount: "₹28,000 / month due on 5th",
@@ -388,7 +388,7 @@ export const MOCK_DATA = {
         other: 0
       },
       owner: {
-        name: "Nestora Workspaces",
+        name: "Nestera Workspaces",
         verified: true,
         phone: "+91 79 4000 XXXX",
         responseRate: "100%",
@@ -400,7 +400,7 @@ export const MOCK_DATA = {
         depositRefund: "No lock-in, refundable on 15-day notice",
         noticePeriod: "15 Days notice",
         lockInPeriod: "Zero lock-in",
-        maintenanceRule: "100% managed by Nestora Hub",
+        maintenanceRule: "100% managed by Nestera Hub",
         guestPolicy: "Meeting room guest credits included"
       },
       description: "Designed for freelance designers, tech founders, and remote employees. Includes high-speed connectivity, unlimited pour-over coffee, quiet phone booths, and networking mixers."
@@ -1222,7 +1222,7 @@ export const MOCK_DATA = {
       clauseTitle: "Monthly Rent & Escrow Safeguard",
       highlightValue: "₹18,000 / month",
       standardLegal: "The Tenant convenants to pay monthly rent in advance on or before the 5th day of each calendar month into designated account. Failure to remit shall attract statutory penal interest of 12% per annum.",
-      plainEnglish: "Pay ₹18,000 by the 5th of every month directly through Nestora UPI or net banking. Zero penalty if you notify before the 3rd. Nestora provides instant GST rent receipts for your HRA tax exemption."
+      plainEnglish: "Pay ₹18,000 by the 5th of every month directly through Nestera UPI or net banking. Zero penalty if you notify before the 3rd. Nestera provides instant GST rent receipts for your HRA tax exemption."
     },
     {
       id: "cl-2",
@@ -1236,7 +1236,7 @@ export const MOCK_DATA = {
       clauseTitle: "Notice Period & Early Exit",
       highlightValue: "2 Months Notice",
       standardLegal: "Either party may terminate this deed by serving two calendar months written notice upon the other party after the expiration of the lock-in period.",
-      plainEnglish: "Give a 2-month notice through the Nestora app whenever you want to move out. If you find a verified replacement tenant through Nestora Roommate Match, the notice fee is waived!"
+      plainEnglish: "Give a 2-month notice through the Nestera app whenever you want to move out. If you find a verified replacement tenant through Nestera Roommate Match, the notice fee is waived!"
     },
     {
       id: "cl-4",

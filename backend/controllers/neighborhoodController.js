@@ -36,7 +36,7 @@ const localReviews = [
     tenantName: 'Aman Sharma (Nirma B.Tech)',
     ratings: { accuracy: 5, cleanliness: 5, owner: 5, commute: 5, safety: 5, overall: 5 },
     comment: 'Lived here for 6 months during my campus internship. Zero brokerage, accurate utility bills, and Rajesh uncle repaired the geyser on the same day!',
-    ownerResponse: 'Thank you Aman! Always welcome back at Nestora spaces.',
+    ownerResponse: 'Thank you Aman! Always welcome back at Nestera spaces.',
     createdAt: '2026-09-01T12:00:00Z'
   },
   {
@@ -129,7 +129,7 @@ exports.addReview = async (req, res) => {
       tenant_name: tenantName || 'Resident',
       tenantName: tenantName || 'Resident',
       ratings: ratings || { accuracy: 5, cleanliness: 5, owner: 5, commute: 5, safety: 5, overall: 5 },
-      comment: comment || 'Verified student review posted on Nestora.',
+      comment: comment || 'Verified student review posted on Nestera.',
       owner_response: null,
       ownerResponse: null,
       created_at: new Date().toISOString(),

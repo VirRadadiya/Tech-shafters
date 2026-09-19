@@ -1,8 +1,41 @@
-'use client';
+﻿'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { NotificationAPI } from '../services/api';
 import { supabase } from '../services/supabaseClient';
+
+export function getDefaultAvatar(gender) {
+  const g = (gender || '').toString().toLowerCase().trim();
+  if (g === 'female') return '/avatars/avatar-female.png';
+  if (g === 'male') return '/avatar.png';
+  return '/avatars/avatar-neutral.svg';
+}
+
+export function isCustomAvatar(avatar) {
+  if (!avatar || typeof avatar !== 'string') return false;
+  const a = avatar.toLowerCase().trim();
+  if (!a) return false;
+  const defaultPlaceholders = [
+    'pngtree',
+    'avatar-male',
+    'avatar-female',
+    'avatar-neutral',
+    '/avatar.png',
+    'avatar.png',
+    'photo-1507003211169-0a1dd7228f2d',
+    'photo-1534528741775-53994a69daeb'
+  ];
+  return !defaultPlaceholders.some(keyword => a.includes(keyword));
+}
+
+export function getProfileAvatar(profile) {
+  if (!profile) return getDefaultAvatar(null);
+  const custom = profile.avatar_url || profile.avatarUrl || profile.avatar;
+  if (isCustomAvatar(custom)) {
+    return custom;
+  }
+  return getDefaultAvatar(profile.gender);
+}
 
 const AppContext = createContext();
 
@@ -15,7 +48,13 @@ export function AppProvider({ children }) {
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem('nestora_auth_user');
-        if (stored) return JSON.parse(stored);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (!isCustomAvatar(parsed.avatarUrl)) {
+            parsed.avatarUrl = getDefaultAvatar(parsed.gender);
+          }
+          return parsed;
+        }
       } catch (e) {}
     }
     return null;
@@ -60,6 +99,7 @@ export function AppProvider({ children }) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState('signup'); // 'signup' | 'login'
   const [selectedPreRole, setSelectedPreRole] = useState('tenant'); // 'tenant' | 'owner'
+  const [isProfileCompletionOpen, setIsProfileCompletionOpen] = useState(false);
   const [isProofVaultModalOpen, setIsProofVaultModalOpen] = useState(false);
   const [isRoommateContractModalOpen, setIsRoommateContractModalOpen] = useState(false);
   const [isUtilityVerificationModalOpen, setIsUtilityVerificationModalOpen] = useState(false);
@@ -100,7 +140,9 @@ export function AppProvider({ children }) {
       email: user.email || '',
       phone: user.phone || '+91 98250 12345',
       role: roleStr.toLowerCase(),
-      avatarUrl: user.avatarUrl || user.avatar_url || (roleStr.toLowerCase() === 'owner' ? '/avatars/rajesh.jpg' : '/avatar.png'),
+      gender: user.gender || null,
+      dateOfBirth: user.dateOfBirth || user.date_of_birth || null,
+      avatarUrl: getProfileAvatar(user),
       emailVerified: true
     };
 
@@ -114,6 +156,26 @@ export function AppProvider({ children }) {
     }
 
     showToast(`Greetings, ${cleanUser.fullName}! Signed in as verified ${normalizedRole}.`, 'success');
+
+    // If existing user has missing gender or date_of_birth, prompt them gently via minimal profile completion step
+    if (!cleanUser.gender || !cleanUser.dateOfBirth) {
+      setTimeout(() => {
+        setIsProfileCompletionOpen(true);
+      }, 600);
+    }
+  };
+
+  const updateCurrentUser = (fields) => {
+    setCurrentUser(prev => {
+      const updated = { ...prev, ...fields };
+      if (!isCustomAvatar(updated.avatarUrl)) {
+        updated.avatarUrl = getDefaultAvatar(updated.gender);
+      }
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('nestora_auth_user', JSON.stringify(updated));
+      }
+      return updated;
+    });
   };
 
   const logoutUser = async () => {
@@ -134,7 +196,7 @@ export function AppProvider({ children }) {
       sessionStorage.clear();
     }
     setCurrentView('landing');
-    showToast('Signed out of Nestora. All local session data cleared.', 'info');
+    showToast('Signed out of Nestera. All local session data cleared.', 'info');
   };
 
   // Supabase Auth listener on startup
@@ -159,7 +221,9 @@ export function AppProvider({ children }) {
                 email: profile.email || session.user.email,
                 phone: profile.phone || '',
                 role: roleStr,
-                avatarUrl: profile.avatar_url || '/avatar.png',
+                gender: profile.gender || null,
+                dateOfBirth: profile.date_of_birth || null,
+                avatarUrl: getProfileAvatar(profile),
                 emailVerified: true
               };
               setCurrentUser(cleanUser);
@@ -188,7 +252,9 @@ export function AppProvider({ children }) {
             email: profile.email || session.user.email,
             phone: profile.phone || '',
             role: roleStr,
-            avatarUrl: profile.avatar_url || '/avatar.png',
+            gender: profile.gender || null,
+            dateOfBirth: profile.date_of_birth || null,
+            avatarUrl: getProfileAvatar(profile),
             emailVerified: true
           };
           setCurrentUser(cleanUser);
@@ -345,6 +411,9 @@ export function AppProvider({ children }) {
       setAuthMode,
       selectedPreRole,
       setSelectedPreRole,
+      isProfileCompletionOpen,
+      setIsProfileCompletionOpen,
+      updateCurrentUser,
       isProofVaultModalOpen,
       setIsProofVaultModalOpen,
       isRoommateContractModalOpen,
@@ -368,7 +437,12 @@ export function AppProvider({ children }) {
       // Toasts
       toasts,
       showToast,
-      removeToast
+      removeToast,
+
+      // Avatar Helpers
+      getDefaultAvatar,
+      isCustomAvatar,
+      getProfileAvatar
     }}>
       {children}
     </AppContext.Provider>

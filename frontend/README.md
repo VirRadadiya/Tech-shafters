@@ -1,6 +1,6 @@
-# Nestora PropTech — Next.js Frontend
+# Nestera PropTech — Next.js Frontend
 
-A high-fidelity Next.js application for the Nestora PropTech platform, converted directly from the single-page prototype into modern, reactive React components with seamless Express + MongoDB backend integration.
+A high-fidelity Next.js application for the Nestera PropTech platform, converted directly from the single-page prototype into modern, reactive React components with seamless Express + MongoDB backend integration.
 
 ## Features
 - **Landing Page**: Location, property type, and budget search with live showcase property highlights and zero-brokerage guarantees.

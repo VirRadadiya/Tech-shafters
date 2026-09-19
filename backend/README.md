@@ -1,6 +1,6 @@
-# Nestora PropTech — Express & MongoDB Backend
+# Nestera PropTech — Express & MongoDB Backend
 
-Robust, scalable REST API for the Nestora PropTech platform, providing full data services for transparent student & youth housing, roommate matching, maintenance ticketing, split expenses, and owner portfolios.
+Robust, scalable REST API for the Nestera PropTech platform, providing full data services for transparent student & youth housing, roommate matching, maintenance ticketing, split expenses, and owner portfolios.
 
 ## Tech Stack
 - **Runtime**: Node.js

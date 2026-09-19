@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
@@ -85,7 +85,7 @@ export default function StripePaymentModal() {
                 <span>₹{(payment.breakdown?.waterSewage || 300).toLocaleString('en-IN')}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '12px', color: 'var(--slate-700)' }}>
-                <span>Nestora Platform Fee (Zero Brokerage)</span>
+                <span>Nestera Platform Fee (Zero Brokerage)</span>
                 <span>₹{(payment.breakdown?.platformFee || 500).toLocaleString('en-IN')}</span>
               </div>
               <div style={{

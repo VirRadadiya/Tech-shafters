@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
@@ -35,7 +35,7 @@ export default function PayRentModal() {
               <strong>₹18,000</strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--accent-emerald-dark)' }}>
-              <span>Nestora Escrow Protection Fee:</span>
+              <span>Nestera Escrow Protection Fee:</span>
               <strong>₹0 (Free)</strong>
             </div>
             <div style={{ borderTop: '1px solid var(--border-medium)', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: 800 }}>

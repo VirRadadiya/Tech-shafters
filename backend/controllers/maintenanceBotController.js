@@ -13,7 +13,7 @@ const chatSessions = [
     id: 'msg-02',
     ticketId: 'maint-101',
     senderType: 'bot',
-    message: 'Hello! Nestora Relay Bot here. Ticket #maint-101 has been logged with HIGH urgency. Verified plumber Ramesh Prajapati assigned (ETA: Today 2:30 PM). If landlord does not acknowledge within 2 hours, this ticket auto-escalates to Priority 1.',
+    message: 'Hello! Nestera Relay Bot here. Ticket #maint-101 has been logged with HIGH urgency. Verified plumber Ramesh Prajapati assigned (ETA: Today 2:30 PM). If landlord does not acknowledge within 2 hours, this ticket auto-escalates to Priority 1.',
     attachments: [],
     createdAt: '2026-09-17T11:01:00Z'
   }
@@ -60,7 +60,7 @@ exports.sendMessage = async (req, res) => {
       urgency,
       reported_ago: 'Just now',
       technician: {
-        name: 'Ramesh Prajapati (Nestora Verified)',
+        name: 'Ramesh Prajapati (Nestera Verified)',
         phone: '+91 98240 77112',
         rating: 4.9,
         eta
@@ -137,7 +137,7 @@ exports.escalateTicket = async (req, res) => {
 
     return res.json({
       success: true,
-      message: `Ticket #${ticketId} has been escalated to Nestora Senior Operations Lead! SMS alerts sent to landlord.`,
+      message: `Ticket #${ticketId} has been escalated to Nestera Senior Operations Lead! SMS alerts sent to landlord.`,
       status: 'Escalated'
     });
   } catch (error) {

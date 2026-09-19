@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -80,7 +80,7 @@
 
         <!-- User Quick Profile Pill -->
         <div class="user-nav-profile" id="user-nav-profile-pill" onclick="openProfileModal()" title="View account & verification">
-          <img src="—Pngtree—man avatar image for profile_13001882.png" alt="Resident" class="user-avatar" id="user-nav-avatar" />
+          <img src="images/avatars/avatar-neutral.svg" alt="Resident" class="user-avatar" id="user-nav-avatar" />
           <span class="user-nav-name" id="user-nav-display-name">Resident</span>
           <span class="badge badge-verified" style="padding: 2px 6px; font-size: 0.7rem;">✓ Verified</span>
         </div>
@@ -235,7 +235,7 @@
         <div class="container">
           <div class="section-header">
             <span class="section-tag">Radical Transparency</span>
-            <h2 class="section-heading">Why Young Adults Choose Nestora</h2>
+            <h2 class="section-heading">Why Young Adults Choose Nestera</h2>
             <p class="section-subheading">We eliminate hidden costs, confusing legal jargon, and roommate conflicts so
               you can lease with 100% confidence.</p>
           </div>
@@ -273,9 +273,9 @@
               </ul>
             </div>
 
-            <!-- Nestora Way Card -->
+            <!-- Nestera Way Card -->
             <div class="compare-card nestora">
-              <span class="compare-badge badge-verified">The Nestora Way</span>
+              <span class="compare-badge badge-verified">The Nestera Way</span>
               <ul class="compare-list">
                 <li class="compare-item">
                   <span class="compare-icon-check">✓</span>
@@ -483,7 +483,7 @@
     <section class="view-panel" id="view-roommates">
       <div class="container roommate-section">
         <div class="roommate-hero-header">
-          <span class="badge badge-primary">Nestora Match</span>
+          <span class="badge badge-primary">Nestera Match</span>
           <h2>Find roommates you'll actually get along with.</h2>
           <p style="color:var(--text-secondary); font-size:1.05rem;">
             Match with students and young professionals by compatibility score, lifestyle routines, study habits, and
@@ -500,6 +500,32 @@
             </button>
           </div>
         </div>
+
+        <!-- Roommate Compatibility Quiz Hero CTA Banner -->
+        <div class="quiz-hero-card" id="quiz-hero-card">
+          <div class="quiz-hero-badge" id="quiz-hero-status-pill">
+            <span class="quiz-pulse-dot" id="quiz-hero-pulse-dot"></span>
+            <span id="quiz-hero-pill-text">Quiz Not Completed</span>
+          </div>
+          <div class="quiz-hero-body">
+            <div class="quiz-hero-text">
+              <h3 class="quiz-hero-title" id="quiz-hero-title">Take Compatibility Quiz</h3>
+              <p class="quiz-hero-sub" id="quiz-hero-sub">
+                Answer a few questions about your lifestyle and preferences to find roommates who match you better.
+              </p>
+              <div class="quiz-hero-uptodate" id="quiz-hero-uptodate" style="display:none;">
+                <span>✓ Your preferences are up to date</span>
+                <span class="quiz-hero-timestamp" id="quiz-hero-timestamp" style="opacity:0.8; font-size:0.75rem;"></span>
+              </div>
+            </div>
+            <div class="quiz-hero-action">
+              <button class="btn btn-primary btn-quiz-cta" id="btn-quiz-cta" onclick="openCompatibilityQuiz()">
+                <span id="btn-quiz-cta-text">Take the Quiz →</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
 
         <!-- Tinder-Style Deck View -->
         <div class="swiper-deck-wrapper" id="roommate-swiper-deck">
@@ -678,7 +704,7 @@
     <section class="view-panel" id="view-valuation">
       <div class="container valuation-section">
         <div class="val-hero-wrap">
-          <span class="badge badge-primary" style="margin-bottom:8px;">Nestora ValueIQ</span>
+          <span class="badge badge-primary" style="margin-bottom:8px;">Nestera ValueIQ</span>
           <h2>Know what your property is really worth.</h2>
           <p style="color:var(--text-secondary); font-size:1.05rem;">
             Real-time algorithmic valuation based on verified sub-registrar transactions, carpet area comps, and local
@@ -1357,7 +1383,7 @@
 
               <div class="owner-table-card" style="padding:24px;">
                 <div style="display:flex; align-items:center; gap:18px; margin-bottom:24px; flex-wrap:wrap;">
-                  <img src="—Pngtree—man avatar image for profile_13001882.png" alt="Owner Avatar" id="owner-profile-avatar" style="width:72px; height:72px; border-radius:50%; object-fit:cover; border:3px solid var(--primary-light);" />
+                  <img src="images/avatars/avatar-neutral.svg" alt="Owner Avatar" id="owner-profile-avatar" style="width:72px; height:72px; border-radius:50%; object-fit:cover; border:3px solid var(--primary-light);" />
                   <div>
                     <h3 style="margin:0 0 6px;" id="owner-profile-name">Landlord Partner</h3>
                     <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -1676,7 +1702,7 @@
       <div style="padding: 28px;">
         <h3 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 6px;">List a New Space</h3>
         <p style="color:var(--text-secondary); font-size:0.875rem; margin-bottom: 20px;">
-          List transparently on Nestora with zero brokerage and verified tenant screening.
+          List transparently on Nestera with zero brokerage and verified tenant screening.
         </p>
 
         <form onsubmit="submitNewOwnerProperty(event)">
@@ -1714,7 +1740,7 @@
       <button class="modal-close-btn" onclick="closeProfileModal()">✕</button>
       <div class="profile-tab-content">
         <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
-          <img src="—Pngtree—man avatar image for profile_13001882.png"
+          <img src="images/avatars/avatar-neutral.svg"
             id="profile-modal-avatar"
             alt="User Avatar"
             style="width:72px; height:72px; border-radius:50%; object-fit:cover; border:2px solid var(--primary);" />
@@ -1754,15 +1780,29 @@
             <span style="color:var(--text-muted); font-weight:600;">Permanent Role:</span>
             <span id="profile-modal-perm-role" style="font-weight:700; color:var(--primary);">Locked &amp; Verified</span>
           </div>
+          <div
+            style="display:flex; justify-content:space-between; padding:12px; background:var(--bg-surface-secondary); border-radius:var(--radius-sm); font-size:0.875rem;">
+            <span style="color:var(--text-muted); font-weight:600;">Gender:</span>
+            <span id="profile-modal-gender" style="font-weight:700; color:var(--text-primary);">Not specified</span>
+          </div>
+          <div
+            style="display:flex; justify-content:space-between; padding:12px; background:var(--bg-surface-secondary); border-radius:var(--radius-sm); font-size:0.875rem;">
+            <span style="color:var(--text-muted); font-weight:600;">Date of Birth:</span>
+            <span id="profile-modal-dob" style="font-weight:700; color:var(--text-primary);">Not specified</span>
+          </div>
         </div>
 
+        <button class="btn btn-outline" style="width:100%; margin-bottom:10px;"
+          onclick="closeProfileModal(); openProfileCompletionModal();">
+          ✏️ Edit Gender &amp; Date of Birth
+        </button>
         <button class="btn btn-primary" style="width:100%;"
           onclick="closeProfileModal(); showToast('Profile preferences synchronized with Supabase');">
           Save Preferences
         </button>
         <button class="btn btn-secondary" style="width:100%; margin-top:10px; color:var(--accent-rose); font-weight:700;"
           onclick="handleLogout()">
-          🚪 Sign Out of Nestora Account
+          🚪 Sign Out of Nestera Account
         </button>
       </div>
     </div>
@@ -1843,7 +1883,7 @@
           Permanent Account Setup
         </span>
         <h2 style="font-size: 1.6rem; font-weight: 800; color: var(--text-primary); margin: 6px 0 8px 0;">
-          How will you use Nestora?
+          How will you use Nestera?
         </h2>
         <p style="color: var(--text-secondary); font-size: 0.92rem; margin-bottom: 24px;">
           Select your primary role. This selection is <strong>permanent</strong> and customizes your verified identity
@@ -1894,7 +1934,7 @@
         </span>
         <h2 id="auth-modal-title"
           style="font-size: 1.55rem; font-weight: 800; color: var(--text-primary); margin: 6px 0 8px 0;">
-          Create your Nestora account
+          Create your Nestera account
         </h2>
         <p id="auth-modal-subtitle" style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">
           Find your space. Find your people. Live smarter.
@@ -1935,6 +1975,26 @@
             <input type="tel" class="val-input" id="auth-phone-input" placeholder="+91 98250 XXXXX" />
           </div>
 
+          <!-- Gender (Signup only) -->
+          <div id="auth-gender-group" class="val-form-group" style="margin-bottom: 12px;">
+            <label>Gender</label>
+            <select class="val-select" id="auth-gender-select" style="width: 100%;">
+              <option value="" disabled selected>Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+          </div>
+
+          <!-- Date of Birth (Signup only) -->
+          <div id="auth-dob-group" class="val-form-group" style="margin-bottom: 12px;">
+            <label>Date of Birth</label>
+            <input type="date" class="val-input" id="auth-dob-input" style="width: 100%;" />
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">
+              Cannot be in the future.
+            </div>
+          </div>
+
           <div class="val-form-group" style="margin-bottom: 12px;">
             <label>Password</label>
             <input type="password" class="val-input" id="auth-password-input" placeholder="Minimum 6 characters"
@@ -1949,7 +2009,7 @@
           <div id="auth-terms-group" style="display: flex; align-items: flex-start; gap: 8px; margin: 10px 0;">
             <input type="checkbox" id="auth-terms-checkbox" required style="margin-top: 3px;" />
             <label for="auth-terms-checkbox" style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4;">
-              I agree to Nestora's <strong>Terms of Service</strong> &amp; <strong>Zero Brokerage Policy</strong>.
+              I agree to Nestera's <strong>Terms of Service</strong> &amp; <strong>Zero Brokerage Policy</strong>.
             </label>
           </div>
 
@@ -2154,7 +2214,7 @@
             <p><strong>Parties:</strong> <span id="rc-prev-user-name">Resident</span> &amp; <span id="rc-prev-name">Aarav Sharma</span></p>
             <p><strong>1. Rent Allocation:</strong> <span id="rc-prev-rent">₹9,000 (50%) / ₹9,000 (50%)</span> due on
               5th of each month.</p>
-            <p><strong>2. Utility Protocol:</strong> Torrent Power &amp; Wi-Fi split 50/50 via Nestora.</p>
+            <p><strong>2. Utility Protocol:</strong> Torrent Power &amp; Wi-Fi split 50/50 via Nestera.</p>
             <p><strong>3. Cleaning Roster:</strong> <span id="rc-prev-chores">Alternating weekly cleaning.</span></p>
             <p><strong>4. Study &amp; Quiet Hours:</strong> <span id="rc-prev-quiet">11:00 PM – 7:00 AM.</span></p>
             <p><strong>5. Visitors &amp; Guests:</strong> <span id="rc-prev-guests">Allowed with 24h WhatsApp
@@ -2295,7 +2355,7 @@
               <span>₹300</span>
             </div>
             <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 12px;">
-              <span>Nestora Platform Fee</span>
+              <span>Nestera Platform Fee</span>
               <span style="color: var(--accent-emerald-dark); font-weight: 700;">₹0 (Zero Brokerage)</span>
             </div>
             <div
@@ -2400,7 +2460,7 @@
         <!-- STEP 2: RENTAL DURATION & DATES -->
         <div id="chk-step-2" style="display: none;">
           <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 16px;">
-            Nestora short stay short-term accommodation supports 2–4 month flexible student and youth rentals.
+            Nestera short stay short-term accommodation supports 2–4 month flexible student and youth rentals.
           </p>
 
           <label style="font-size: 0.82rem; font-weight: 700; display: block; margin-bottom: 8px;">
@@ -2459,7 +2519,7 @@
               <strong id="chk-break-util">₹2,500</strong>
             </div>
             <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 10px; color: var(--accent-emerald-dark);">
-              <span>Nestora Platform Fee</span>
+              <span>Nestera Platform Fee</span>
               <strong>₹0 (Zero Brokerage Guarantee)</strong>
             </div>
             <div style="border-top: 1px solid var(--border-medium); paddingTop: 10px; display: flex; justify-content: space-between; font-size: 1rem; font-weight: 800;">
@@ -2499,7 +2559,7 @@
         <!-- STEP 4: TRUE COST OF LIVING -->
         <div id="chk-step-4" style="display: none;">
           <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 16px;">
-            Nestora estimates your true out-of-pocket budget based on local Ahmedabad transit and living averages:
+            Nestera estimates your true out-of-pocket budget based on local Ahmedabad transit and living averages:
           </p>
 
           <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
@@ -2584,7 +2644,7 @@
               <strong id="chk-pay-total" style="font-size: 1.2rem; color: var(--primary);">₹54,000</strong>
             </div>
             <p style="font-size: 0.75rem; color: var(--text-muted); margin: 8px 0 0;">
-              🔒 Processed securely by Stripe AES-256 compliant servers. Nestora never stores your payment card credentials.
+              🔒 Processed securely by Stripe AES-256 compliant servers. Nestera never stores your payment card credentials.
             </p>
           </div>
 
@@ -2828,9 +2888,531 @@
     </form>
   </div>
 
+  <!-- ==========================================================================
+       MODAL 19: ROOMMATE COMPATIBILITY QUIZ (7 Steps + Review)
+       ========================================================================== -->
+  <div class="details-modal-backdrop" id="roommate-quiz-modal">
+    <div class="details-modal-container quiz-modal-container">
+      <button class="modal-close-btn" onclick="closeCompatibilityQuiz()">✕</button>
+
+      <!-- Quiz Header with Stepper Progress -->
+      <div class="quiz-modal-header">
+        <span class="quiz-step-tag" id="quiz-step-indicator">Step 1 of 7 • Food &amp; Dining</span>
+        <h2 class="quiz-step-heading" id="quiz-step-title">Food &amp; Dining Preferences</h2>
+        <div class="quiz-progress-track">
+          <div class="quiz-progress-fill" id="quiz-progress-fill" style="width: 14%;"></div>
+        </div>
+      </div>
+
+      <!-- Quiz Modal Body -->
+      <div class="quiz-modal-body" id="quiz-modal-body">
+
+        <!-- STEP 1: FOOD & DINING (Q1, Q2, Q5) -->
+        <div class="quiz-step-panel" id="quiz-step-1">
+          <div class="quiz-question-block">
+            <label class="quiz-question-label">Q1. What are your food preferences?</label>
+            <div class="quiz-question-hint">Select the dietary habit that best describes your daily lifestyle.</div>
+            <div class="quiz-options-grid" data-field="food_preference">
+              <div class="quiz-option-card" onclick="selectQuizOption('food_preference', 'Pure Vegetarian', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🥗 Pure Vegetarian</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('food_preference', 'Non Vegetarian', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🍗 Non Vegetarian</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('food_preference', 'Eggitarian', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🍳 Eggitarian</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('food_preference', 'Pure Jain', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🌱 Pure Jain</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="quiz-question-block">
+            <label class="quiz-question-label">Q2. Do you have any objection if your roommate has different food preferences?</label>
+            <div class="quiz-question-hint">Choose 'No' for flexible living arrangements, or 'Yes' if you require matching diets.</div>
+            <div class="quiz-options-grid" data-field="food_preference_flexibility">
+              <div class="quiz-option-card" onclick="selectQuizOption('food_preference_flexibility', 'No', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🟢 No (More flexible)</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('food_preference_flexibility', 'Yes', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🔴 Yes (Strict about matching)</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="quiz-question-block">
+            <label class="quiz-question-label">Q5. How much do you order food from outside or eat out?</label>
+            <div class="quiz-options-grid" data-field="eating_out_frequency">
+              <div class="quiz-option-card" onclick="selectQuizOption('eating_out_frequency', 'Very frequently', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🥡 Very frequently</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('eating_out_frequency', 'Occasionally', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🍲 Occasionally</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('eating_out_frequency', 'Once in a blue moon', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🏡 Once in a blue moon</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('eating_out_frequency', 'Depends on your mood', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">✨ Depends on your mood</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: HABITS (Q3, Q4) -->
+        <div class="quiz-step-panel" id="quiz-step-2" style="display:none;">
+          <div class="quiz-question-block">
+            <label class="quiz-question-label">Q3. How much do you smoke?</label>
+            <div class="quiz-question-hint">Helps ensure mutual comfort regarding indoor/balcony air quality.</div>
+            <div class="quiz-options-grid" data-field="smoking_frequency">
+              <div class="quiz-option-card" onclick="selectQuizOption('smoking_frequency', 'Not at all', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🚭 Not at all</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('smoking_frequency', 'Occasionally', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🍃 Occasionally</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('smoking_frequency', 'Often', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🚬 Often</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('smoking_frequency', 'Regularly', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">💨 Regularly</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="quiz-question-block">
+            <label class="quiz-question-label">Q4. How much do you drink?</label>
+            <div class="quiz-options-grid" data-field="drinking_frequency">
+              <div class="quiz-option-card" onclick="selectQuizOption('drinking_frequency', 'Not at all', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🥤 Not at all</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('drinking_frequency', 'Occasionally', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🥂 Occasionally (Social only)</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('drinking_frequency', 'Often', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🍺 Often</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('drinking_frequency', 'Regularly', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🍷 Regularly</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3: FINANCES (Q6) -->
+        <div class="quiz-step-panel" id="quiz-step-3" style="display:none;">
+          <div class="quiz-question-block">
+            <label class="quiz-question-label">Q6. What is your monthly budget?</label>
+            <div class="quiz-question-hint">Calibrate your preferred maximum monthly rent share (₹0 – ₹20,000).</div>
+
+            <div class="quiz-budget-box">
+              <div class="quiz-budget-val-display" id="quiz-budget-display">Monthly Budget: ₹12,000</div>
+              <div class="quiz-budget-sub">Slide to adjust your monthly room budget target</div>
+
+              <input type="range" class="quiz-range-slider" id="quiz-budget-slider" min="0" max="20000" step="500" value="12000" oninput="handleQuizBudgetInput(this.value)" />
+
+              <div class="quiz-slider-scale">
+                <span>₹0 (Minimal)</span>
+                <span>₹10,000 (Median)</span>
+                <span>₹20,000 (Premium)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4: PERSONALITY & WORK (Q7, Q8, Q9, Q10, Q11) -->
+        <div class="quiz-step-panel" id="quiz-step-4" style="display:none;">
+          <div class="quiz-question-block">
+            <label class="quiz-question-label">Q7. What type of person are you?</label>
+            <div class="quiz-options-grid" data-field="personality_type">
+              <div class="quiz-option-card" onclick="selectQuizOption('personality_type', 'Extrovert', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🎉 Extrovert</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('personality_type', 'Ambivert', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">⚖️ Ambivert</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('personality_type', 'Introvert', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🧘 Introvert</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="quiz-question-block">
+            <label class="quiz-question-label">Q8. What is your relationship status?</label>
+            <div class="quiz-options-grid" data-field="relationship_status">
+              <div class="quiz-option-card" onclick="selectQuizOption('relationship_status', 'Single', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">👤 Single</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('relationship_status', 'Committed', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">💑 Committed</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="quiz-question-block">
+            <label class="quiz-question-label">Q9. What kind of relationship do you want with your roommate?</label>
+            <div class="quiz-options-grid" data-field="roommate_relationship_preference">
+              <div class="quiz-option-card" onclick="selectQuizOption('roommate_relationship_preference', 'Very close friends', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🤝 Very close friends</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('roommate_relationship_preference', 'Friendly and social', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">☕ Friendly and social</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('roommate_relationship_preference', 'Friendly but independent', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">📚 Friendly but independent</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('roommate_relationship_preference', 'Mostly just roommates', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🚪 Mostly just roommates</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="quiz-question-block">
+            <label class="quiz-question-label">Q10. Which would bother you the MOST in a roommate?</label>
+            <div class="quiz-options-grid" data-field="biggest_roommate_concern">
+              <div class="quiz-option-card" onclick="selectQuizOption('biggest_roommate_concern', 'Poor cleanliness', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🧹 Poor cleanliness</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('biggest_roommate_concern', 'Excessive noise', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🔊 Excessive noise</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('biggest_roommate_concern', 'Lack of privacy', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🔒 Lack of privacy</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('biggest_roommate_concern', 'Dominating in nature', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🗣️ Dominating in nature</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="quiz-question-block">
+            <label class="quiz-question-label">Q11. Where would you prefer to study/work most of the time?</label>
+            <div class="quiz-options-grid" data-field="study_location_preference">
+              <div class="quiz-option-card" onclick="selectQuizOption('study_location_preference', 'In the room', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">💻 In the room</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('study_location_preference', 'Library', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">📖 Library</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('study_location_preference', 'Other campus spaces', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🏫 Other campus spaces</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('study_location_preference', 'Depends on the day', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🔄 Depends on the day</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 5: SLEEP & ENVIRONMENT (Q12, Q13) -->
+        <div class="quiz-step-panel" id="quiz-step-5" style="display:none;">
+          <div class="quiz-question-block">
+            <label class="quiz-question-label">Q12. What time do you usually sleep on college/work days?</label>
+            <div class="quiz-options-grid" data-field="sleep_schedule">
+              <div class="quiz-option-card" onclick="selectQuizOption('sleep_schedule', 'Before 11 PM', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🌅 Before 11 PM (Early Riser)</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('sleep_schedule', '11 PM–12 AM', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🌙 11 PM–12 AM (Regular)</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('sleep_schedule', '12–1 AM', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🦉 12–1 AM (Night Owl)</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('sleep_schedule', 'After 1 AM', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🌌 After 1 AM (Late Owl)</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="quiz-question-block">
+            <label class="quiz-question-label">Q13. How do your surroundings affect your sleep?</label>
+            <div class="quiz-options-grid" data-field="sleep_environment_preference">
+              <div class="quiz-option-card" onclick="selectQuizOption('sleep_environment_preference', 'I want a completely quiet environment.', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🤫 I want a completely quiet environment.</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('sleep_environment_preference', 'A little bit of noise is fine.', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">📻 A little bit of noise is fine.</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('sleep_environment_preference', 'I really don\'t care about my surroundings.', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">😴 I really don't care about my surroundings.</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('sleep_environment_preference', 'Depends on the time of the day.', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">⏰ Depends on the time of the day.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 6: ROOMMATE PREFERENCES (Q14, Q15, Q16) -->
+        <div class="quiz-step-panel" id="quiz-step-6" style="display:none;">
+          <div class="quiz-question-block">
+            <label class="quiz-question-label">Q14. Gender preference of your roommate</label>
+            <div class="quiz-question-hint">Selecting 'Any' does not penalize compatibility scores across profiles.</div>
+            <div class="quiz-options-grid" data-field="roommate_gender_preference">
+              <div class="quiz-option-card" onclick="selectQuizOption('roommate_gender_preference', 'Male', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">👨 Male</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('roommate_gender_preference', 'Female', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">👩 Female</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('roommate_gender_preference', 'Any', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🌈 Any (No Preference)</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="quiz-question-block">
+            <label class="quiz-question-label">Q15. Age preference of your roommate</label>
+            <div class="quiz-options-grid" data-field="roommate_age_preference">
+              <div class="quiz-option-card" onclick="selectQuizOption('roommate_age_preference', '17–25', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🎓 17–25 (College / Grad)</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('roommate_age_preference', '25–35', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">💼 25–35 (Young Professional)</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('roommate_age_preference', '35–45', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">👔 35–45</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('roommate_age_preference', '45+', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🌟 45+</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="quiz-question-block">
+            <label class="quiz-question-label">Q16. Occupation</label>
+            <div class="quiz-options-grid" data-field="occupation">
+              <div class="quiz-option-card" onclick="selectQuizOption('occupation', 'Student', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🎒 Student</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('occupation', 'Business', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">📈 Business</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('occupation', 'Job', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">💼 Job (Salaried)</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('occupation', 'Freelancer', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">💻 Freelancer / Remote</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 7: PETS, CLEANLINESS & SPACE (Q17, Q18, Q19) -->
+        <div class="quiz-step-panel" id="quiz-step-7" style="display:none;">
+          <div class="quiz-question-block">
+            <label class="quiz-question-label">Q17. What do you prefer regarding pets?</label>
+            <div class="quiz-options-grid" data-field="pet_preference">
+              <div class="quiz-option-card" onclick="selectQuizOption('pet_preference', '0 Pet tolerance', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🚫 0 Pet tolerance</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('pet_preference', 'Doesn\'t matter', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🐾 Doesn't matter</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('pet_preference', 'Even I have a pet', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🐕 Even I have a pet</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('pet_preference', 'As long as boundaries are maintained', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🏡 As long as boundaries are maintained</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="quiz-question-block">
+            <label class="quiz-question-label">Q18. How tidy do you normally keep the room?</label>
+            <div class="quiz-options-grid" data-field="cleanliness_level">
+              <div class="quiz-option-card" onclick="selectQuizOption('cleanliness_level', 'Very tidy and organized', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">✨ Very tidy and organized</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('cleanliness_level', 'Reasonably tidy', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🧹 Reasonably tidy</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('cleanliness_level', 'A little messy is fine', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🛋️ A little messy is fine</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('cleanliness_level', 'Mess doesn\'t bother me', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">📦 Mess doesn't bother me</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="quiz-question-block">
+            <label class="quiz-question-label">Q19. How important is personal space to you?</label>
+            <div class="quiz-options-grid" data-field="personal_space_importance">
+              <div class="quiz-option-card" onclick="selectQuizOption('personal_space_importance', 'Extremely important', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🛡️ Extremely important</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('personal_space_importance', 'Quite important', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🔑 Quite important</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('personal_space_importance', 'Somewhat important', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">🚪 Somewhat important</div>
+              </div>
+              <div class="quiz-option-card" onclick="selectQuizOption('personal_space_importance', 'Not very important', this)">
+                <div class="quiz-radio-indicator"></div>
+                <div class="quiz-option-text">💬 Not very important</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 8: REVIEW & CALCULATE -->
+        <div class="quiz-step-panel" id="quiz-step-8" style="display:none;">
+          <div style="text-align:center; margin-bottom:20px;">
+            <span style="font-size:2.5rem;">🎉</span>
+            <h3 style="font-size:1.35rem; font-weight:800; margin:6px 0;">Review Your Compatibility Profile</h3>
+            <p style="color:var(--text-secondary); font-size:0.88rem; max-width:480px; margin:0 auto;">
+              All 19 questions are completed. We will calculate personalized match percentages for each roommate profile.
+            </p>
+          </div>
+
+          <div class="quiz-review-grid" id="quiz-review-summary-grid">
+            <!-- Dynamically populated review items -->
+          </div>
+
+          <div style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:12px; padding:14px 18px; font-size:0.85rem; color:#166534; margin-bottom:16px;">
+            🔒 <strong>Saved to Supabase:</strong> Your preferences are securely associated with your account and will immediately recalibrate every roommate's match score.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Quiz Navigation Footer -->
+      <div class="quiz-modal-footer">
+        <button class="btn btn-secondary" id="quiz-btn-back" onclick="handleQuizPrevStep()" style="display:none;">
+          ← Back
+        </button>
+        <div style="flex:1;"></div>
+        <button class="btn btn-primary" id="quiz-btn-next" onclick="handleQuizNextStep()">
+          Next Step →
+        </button>
+        <button class="btn btn-primary" id="quiz-btn-submit" onclick="submitCompatibilityQuiz()" style="display:none; background:#10B981; border-color:#059669;">
+          Complete Quiz &amp; Calculate Matches 🎯
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 20: POST-LOGIN PROFILE COMPLETION MODAL
+       ========================================================================== -->
+  <div class="details-modal-backdrop" id="profile-completion-modal">
+    <div class="details-modal-container" style="max-width: 440px;">
+      <button class="modal-close-btn" onclick="closeProfileCompletionModal()">✕</button>
+      <div style="padding: 28px;">
+        <span style="font-size: 0.78rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">
+          Profile Details
+        </span>
+        <h3 style="font-size: 1.35rem; font-weight: 800; color: var(--text-primary); margin: 4px 0 6px 0;">
+          Complete Your Profile 👋
+        </h3>
+        <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 20px; line-height: 1.45;">
+          Add your Gender and Date of Birth to optimize your personalized roommate matches and trust score.
+        </p>
+
+        <form id="profile-completion-form" onsubmit="submitProfileCompletion(event)">
+          <div class="val-form-group" style="margin-bottom: 14px;">
+            <label>Gender</label>
+            <select class="val-select" id="completion-gender-select" style="width: 100%;" required>
+              <option value="" disabled selected>Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+          </div>
+
+          <div class="val-form-group" style="margin-bottom: 18px;">
+            <label>Date of Birth</label>
+            <input type="date" class="val-input" id="completion-dob-input" style="width: 100%;" required />
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">
+              Cannot be in the future.
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px;">
+            <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="closeProfileCompletionModal()">
+              Skip for now
+            </button>
+            <button type="submit" class="btn btn-primary" style="flex: 1;">
+              Save &amp; Continue
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- JavaScript Modules -->
   <script src="js/data.js"></script>
+  <script src="js/compatibility.js"></script>
   <script src="js/app.js"></script>
 </body>
+
 
 </html>

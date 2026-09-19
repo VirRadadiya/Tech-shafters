@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
@@ -169,7 +169,7 @@ export default function CheckoutModal() {
         {step === 2 && (
           <div>
             <p style={{ fontSize: '0.9rem', color: 'var(--slate-600)', marginBottom: '18px' }}>
-              Nestora supports flexible short-term youth accommodation with short-stay rental windows.
+              Nestera supports flexible short-term youth accommodation with short-stay rental windows.
             </p>
 
             <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--slate-700)', display: 'block', marginBottom: '8px' }}>
@@ -254,7 +254,7 @@ export default function CheckoutModal() {
                 <strong>₹{utilities.toLocaleString('en-IN')}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '10px', color: 'var(--emerald-600)' }}>
-                <span>Nestora Platform Fee</span>
+                <span>Nestera Platform Fee</span>
                 <strong>₹0 (Zero Brokerage)</strong>
               </div>
               <div style={{ borderTop: '1px solid var(--slate-300)', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 800 }}>
@@ -296,7 +296,7 @@ export default function CheckoutModal() {
         {step === 4 && (
           <div>
             <p style={{ fontSize: '0.88rem', color: 'var(--slate-600)', marginBottom: '16px' }}>
-              Unlike traditional portals that hide living expenses, Nestora estimates your complete lifestyle budget:
+              Unlike traditional portals that hide living expenses, Nestera estimates your complete lifestyle budget:
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
@@ -418,7 +418,7 @@ export default function CheckoutModal() {
                 <strong style={{ fontSize: '1.2rem', color: 'var(--primary-600)' }}>₹{initialDueToday.toLocaleString('en-IN')}</strong>
               </div>
               <p style={{ fontSize: '0.75rem', color: 'var(--slate-500)', marginTop: '8px', marginBottom: 0 }}>
-                🔒 Card/UPI details are processed directly by Stripe AES-256 compliant servers. Nestora never stores your card credentials.
+                🔒 Card/UPI details are processed directly by Stripe AES-256 compliant servers. Nestera never stores your card credentials.
               </p>
             </div>
 

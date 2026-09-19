@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
@@ -33,7 +33,7 @@ export default function RoleSelectModal() {
         </div>
 
         <h2 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--slate-900)', marginBottom: '8px' }}>
-          How will you use Nestora?
+          How will you use Nestera?
         </h2>
         <p style={{ color: 'var(--slate-500)', fontSize: '0.95rem', marginBottom: '24px' }}>
           Select your primary role. This choice is <strong>permanent</strong> and ensures your profile, security permissions, and tools are custom-tailored.

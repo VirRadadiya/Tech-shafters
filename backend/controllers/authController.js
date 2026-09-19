@@ -1,5 +1,38 @@
 const supabase = require('../config/supabase');
 
+function getDefaultAvatar(gender) {
+  const g = (gender || '').toString().toLowerCase().trim();
+  if (g === 'female') return '/avatars/avatar-female.png';
+  if (g === 'male') return '/avatar.png';
+  return '/avatars/avatar-neutral.svg';
+}
+
+function isCustomAvatar(avatar) {
+  if (!avatar || typeof avatar !== 'string') return false;
+  const a = avatar.toLowerCase().trim();
+  if (!a) return false;
+  const defaultPlaceholders = [
+    'pngtree',
+    'avatar-male',
+    'avatar-female',
+    'avatar-neutral',
+    '/avatar.png',
+    'avatar.png',
+    'photo-1507003211169-0a1dd7228f2d',
+    'photo-1534528741775-53994a69daeb'
+  ];
+  return !defaultPlaceholders.some(keyword => a.includes(keyword));
+}
+
+function getProfileAvatar(profile) {
+  if (!profile) return getDefaultAvatar(null);
+  const custom = profile.avatar_url || profile.avatarUrl || profile.avatar;
+  if (isCustomAvatar(custom)) {
+    return custom;
+  }
+  return getDefaultAvatar(profile.gender);
+}
+
 // Dynamic in-memory user registry for fast fallback
 const localProfiles = [
   {
@@ -8,7 +41,8 @@ const localProfiles = [
     email: 'rajesh.patel@nestora.in',
     phone: '+91 94260 54321',
     role: 'owner',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+    gender: 'Male',
+    avatarUrl: '/avatar.png',
     emailVerified: true
   }
 ];
@@ -21,14 +55,14 @@ function deriveNameFromEmail(email) {
     .split(/[._-]/)
     .filter(Boolean)
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ') || 'Nestora User';
+    .join(' ') || 'Nestera User';
 }
 
 // POST /api/auth/register
 // Role is chosen BEFORE signup and is strictly permanent
 exports.register = async (req, res) => {
   try {
-    const { fullName, email, phone, password, role } = req.body;
+    const { fullName, email, phone, password, role, gender, date_of_birth, dateOfBirth, avatarUrl, avatar_url } = req.body;
 
     if (!fullName || !email || !password || !role) {
       return res.status(400).json({ success: false, message: 'All fields including permanent role are required.' });
@@ -40,9 +74,10 @@ exports.register = async (req, res) => {
 
     const cleanEmail = email.toLowerCase().trim();
     const cleanName = fullName.trim();
-    const avatar = role === 'owner' 
-      ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80'
-      : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80';
+    const cleanGender = gender || null;
+    const cleanDob = date_of_birth || dateOfBirth || null;
+    const customAvatar = avatarUrl || avatar_url;
+    const avatar = isCustomAvatar(customAvatar) ? customAvatar : getDefaultAvatar(cleanGender);
 
     let userId = `usr-${Date.now()}`;
 
@@ -57,7 +92,9 @@ exports.register = async (req, res) => {
             full_name: cleanName,
             phone: phone || existing.phone,
             role: existing.role || role, // permanent role preserved
-            avatar_url: existing.avatar_url || avatar
+            avatar_url: isCustomAvatar(existing.avatar_url) ? existing.avatar_url : (isCustomAvatar(customAvatar) ? customAvatar : null),
+            gender: cleanGender !== null ? cleanGender : existing.gender,
+            date_of_birth: cleanDob !== null ? cleanDob : existing.date_of_birth
           }).eq('id', userId);
         } else {
           await supabase.from('profiles').insert([{
@@ -66,7 +103,9 @@ exports.register = async (req, res) => {
             email: cleanEmail,
             phone: phone || '',
             role: role, // permanent
-            avatar_url: avatar,
+            avatar_url: isCustomAvatar(customAvatar) ? customAvatar : null,
+            gender: cleanGender,
+            date_of_birth: cleanDob,
             email_verified: true
           }]);
         }
@@ -81,6 +120,9 @@ exports.register = async (req, res) => {
       email: cleanEmail,
       phone: phone || '',
       role: role,
+      gender: cleanGender,
+      date_of_birth: cleanDob,
+      dateOfBirth: cleanDob,
       avatarUrl: avatar,
       emailVerified: true,
       created_at: new Date().toISOString()
@@ -127,7 +169,10 @@ exports.login = async (req, res) => {
             email: data.email,
             phone: data.phone,
             role: data.role,
-            avatarUrl: data.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+            gender: data.gender || null,
+            date_of_birth: data.date_of_birth || null,
+            dateOfBirth: data.date_of_birth || null,
+            avatarUrl: getProfileAvatar(data),
             emailVerified: data.email_verified
           };
         }
@@ -139,6 +184,9 @@ exports.login = async (req, res) => {
     // 2. Query in-memory registry
     if (!user) {
       user = localProfiles.find(u => u.email.toLowerCase() === cleanEmail);
+      if (user) {
+        user.avatarUrl = getProfileAvatar(user);
+      }
     }
 
     // 3. If user is signing in for the first time with custom credentials, dynamically create their profile
@@ -150,7 +198,10 @@ exports.login = async (req, res) => {
         email: cleanEmail,
         phone: '+91 98765 00000',
         role: 'tenant', // permanent default
-        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+        gender: null,
+        date_of_birth: null,
+        dateOfBirth: null,
+        avatarUrl: getDefaultAvatar(null),
         emailVerified: true
       };
 
@@ -162,6 +213,8 @@ exports.login = async (req, res) => {
             email: user.email,
             phone: user.phone,
             role: user.role,
+            gender: null,
+            date_of_birth: null,
             avatar_url: user.avatarUrl,
             email_verified: true
           }]);
@@ -209,7 +262,10 @@ exports.getMe = async (req, res) => {
             email: data.email,
             phone: data.phone,
             role: data.role,
-            avatarUrl: data.avatar_url,
+            gender: data.gender || null,
+            date_of_birth: data.date_of_birth || null,
+            dateOfBirth: data.date_of_birth || null,
+            avatarUrl: getProfileAvatar(data),
             emailVerified: data.email_verified
           };
         }
@@ -229,7 +285,89 @@ exports.getMe = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User profile not found' });
     }
 
+    profile.avatarUrl = getProfileAvatar(profile);
     return res.json({ success: true, user: profile });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// PATCH /api/auth/profile
+// Used for post-login profile completion or updating Gender / DOB
+exports.updateProfile = async (req, res) => {
+  try {
+    const { userId, email, gender, date_of_birth, dateOfBirth, fullName, phone, avatarUrl, avatar_url } = req.body;
+    const cleanDob = date_of_birth || dateOfBirth;
+    const customAvatar = avatarUrl || avatar_url;
+
+    const updates = {};
+    if (gender !== undefined) updates.gender = gender;
+    if (cleanDob !== undefined) updates.date_of_birth = cleanDob;
+    if (fullName !== undefined) updates.full_name = fullName;
+    if (phone !== undefined) updates.phone = phone;
+    if (customAvatar !== undefined) {
+      updates.avatar_url = isCustomAvatar(customAvatar) ? customAvatar : null;
+    }
+
+    let updatedUser = null;
+
+    if (supabase) {
+      try {
+        let query = supabase.from('profiles').update(updates);
+        if (userId) {
+          query = query.eq('id', userId);
+        } else if (email) {
+          query = query.eq('email', email.toLowerCase().trim());
+        } else {
+          return res.status(400).json({ success: false, message: 'User ID or Email is required.' });
+        }
+        const { data, error } = await query.select().maybeSingle();
+        if (!error && data) {
+          updatedUser = {
+            id: data.id,
+            fullName: data.full_name,
+            email: data.email,
+            phone: data.phone,
+            role: data.role,
+            gender: data.gender || null,
+            date_of_birth: data.date_of_birth || null,
+            dateOfBirth: data.date_of_birth || null,
+            avatarUrl: getProfileAvatar(data),
+            emailVerified: data.email_verified
+          };
+        }
+      } catch (err) {
+        console.warn('[Supabase Profile Update]:', err.message);
+      }
+    }
+
+    // Update in-memory fallback if needed
+    const targetEmail = (email || (updatedUser && updatedUser.email) || '').toLowerCase();
+    const localIdx = localProfiles.findIndex(p => (userId && p.id === userId) || (targetEmail && p.email.toLowerCase() === targetEmail));
+    if (localIdx >= 0) {
+      if (gender !== undefined) localProfiles[localIdx].gender = gender;
+      if (cleanDob !== undefined) {
+        localProfiles[localIdx].date_of_birth = cleanDob;
+        localProfiles[localIdx].dateOfBirth = cleanDob;
+      }
+      if (fullName !== undefined) localProfiles[localIdx].fullName = fullName;
+      if (phone !== undefined) localProfiles[localIdx].phone = phone;
+      if (customAvatar !== undefined) {
+        localProfiles[localIdx].avatar_url = isCustomAvatar(customAvatar) ? customAvatar : null;
+      }
+      localProfiles[localIdx].avatarUrl = getProfileAvatar(localProfiles[localIdx]);
+      if (!updatedUser) updatedUser = localProfiles[localIdx];
+    }
+
+    if (updatedUser) {
+      updatedUser.avatarUrl = getProfileAvatar(updatedUser);
+    }
+
+    return res.json({
+      success: true,
+      message: 'Profile updated successfully!',
+      user: updatedUser || { gender, date_of_birth: cleanDob, dateOfBirth: cleanDob }
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

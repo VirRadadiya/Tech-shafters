@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
@@ -19,7 +19,7 @@ export default function RoommateContractModal() {
   const [quietHours, setQuietHours] = useState('11:00 PM – 7:00 AM (Weekdays)');
   const [choresSchedule, setChoresSchedule] = useState('Alternating weekly kitchen and washroom cleaning');
   const [guestPolicy, setGuestPolicy] = useState('Overnight guests allowed with 24h advance WhatsApp notification');
-  const [utilities, setUtilities] = useState('Torrent Power electricity and 200Mbps Wi-Fi split 50/50 via Nestora');
+  const [utilities, setUtilities] = useState('Torrent Power electricity and 200Mbps Wi-Fi split 50/50 via Nestera');
   const [noticePeriod, setNoticePeriod] = useState('30 Days written notice prior to departure');
 
   const fetchContracts = async () => {

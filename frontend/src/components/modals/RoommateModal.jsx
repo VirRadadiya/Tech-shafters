@@ -8,7 +8,8 @@ export default function RoommateModal() {
     selectedRoommate,
     isRoommateModalOpen,
     closeRoommateProfile,
-    triggerMatchCelebration
+    triggerMatchCelebration,
+    getProfileAvatar
   } = useApp();
 
   if (!isRoommateModalOpen || !selectedRoommate) return null;
@@ -35,7 +36,7 @@ export default function RoommateModal() {
           {/* Avatar & Header */}
           <div style={{ display: 'flex', gap: '20px', alignItems: 'center', marginBottom: '20px' }}>
             <img
-              src={r.avatar}
+              src={getProfileAvatar ? getProfileAvatar(r) : r.avatar}
               alt={r.name}
               style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--primary-light)' }}
             />
@@ -97,18 +98,40 @@ export default function RoommateModal() {
           </div>
 
           {/* Why You're Compatible */}
-          {r.whyCompatible && (
-            <div style={{ background: 'var(--accent-emerald-light)', padding: '14px', borderRadius: '12px', marginBottom: '16px' }}>
-              <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--accent-emerald-dark)', marginBottom: '6px' }}>
-                🤝 Why You'll Live Great Together
-              </h4>
-              <ul style={{ fontSize: '0.85rem', color: 'var(--text-primary)', paddingLeft: '16px', lineHeight: 1.5 }}>
-                {r.whyCompatible.map((item, idx) => (
-                  <li key={idx}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <div style={{ background: 'rgba(79, 70, 229, 0.05)', border: '1.5px solid rgba(79, 70, 229, 0.15)', padding: '16px', borderRadius: '12px', marginBottom: '16px' }}>
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>❤️</span>
+              <span>Why You Match ({r.compatibility}% Compatibility)</span>
+            </h4>
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 10px 0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {(r.matchedFactors || r.whyCompatible || [
+                'Both prefer quiet evening study sessions',
+                'High cleanliness standards match',
+                'Similar campus commute times'
+              ]).map((item, idx) => (
+                <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.86rem', color: '#065F46', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '6px 10px', borderRadius: '6px' }}>
+                  <span>✓</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+
+            {r.differences && r.differences.length > 0 && (
+              <div style={{ marginTop: '12px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#B45309', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.04em' }}>
+                  Possible Differences
+                </div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {r.differences.map((diff, idx) => (
+                    <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.86rem', color: '#92400E', background: '#FEF3C7', border: '1px solid #FDE68A', padding: '6px 10px', borderRadius: '6px' }}>
+                      <span>•</span>
+                      <span>{diff}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Action Footer */}
@@ -123,9 +146,10 @@ export default function RoommateModal() {
               triggerMatchCelebration(r);
             }}
           >
-            Connect & Chat →
+            Connect &amp; Chat →
           </button>
         </div>
+
       </div>
     </div>
   );

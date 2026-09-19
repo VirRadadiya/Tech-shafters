@@ -207,7 +207,7 @@ exports.applyNow = async (req, res) => {
 
     return res.json({
       success: true,
-      message: 'Application & digital KYC submitted with 0% brokerage guarantee. Nestora agreement is being generated.',
+      message: 'Application & digital KYC submitted with 0% brokerage guarantee. Nestera agreement is being generated.',
       details: { propertyId, applicantName: newApp.applicant_name, aadhaarVerified: !!aadhaarVerified },
       application: newApp
     });
@@ -222,7 +222,7 @@ exports.contactOwner = async (req, res) => {
     const { propertyId, message } = req.body;
     return res.json({
       success: true,
-      message: 'Direct inquiry dispatched to verified landlord via WhatsApp & Nestora chat.',
+      message: 'Direct inquiry dispatched to verified landlord via WhatsApp & Nestera chat.',
       details: { propertyId, message }
     });
   } catch (error) {

@@ -18,7 +18,8 @@ export default function Navbar() {
     setIsAuthModalOpen,
     setAuthMode,
     startOnboarding,
-    showToast
+    showToast,
+    getProfileAvatar
   } = useApp();
 
   return (
@@ -158,7 +159,7 @@ export default function Navbar() {
                 title="View account & verification"
                 style={{ cursor: 'pointer' }}
               >
-                <img src={currentUser?.avatarUrl || "/avatar.png"} alt="User" className="user-avatar" />
+                <img src={getProfileAvatar(currentUser)} alt="User" className="user-avatar" />
                 <span className="user-nav-name">{currentUser?.fullName || 'Resident'}</span>
                 <span className="badge badge-verified" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>
                   ✓ KYC

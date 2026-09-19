@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { MaintenanceBotAPI } from '../../services/api';
@@ -12,7 +12,7 @@ export default function MaintenanceChatWidget() {
     {
       id: 'msg-0',
       senderType: 'bot',
-      message: `👋 Greetings, ${residentName}! I am the Nestora Maintenance Relay Bot. Type any repair issue (e.g. "geyser leaking", "ac not cooling") or upload a photo to dispatch a technician immediately.`,
+      message: `👋 Greetings, ${residentName}! I am the Nestera Maintenance Relay Bot. Type any repair issue (e.g. "geyser leaking", "ac not cooling") or upload a photo to dispatch a technician immediately.`,
       time: 'Just now'
     }
   ]);
@@ -84,7 +84,7 @@ export default function MaintenanceChatWidget() {
   const handleEscalate = async (ticketId) => {
     try {
       await MaintenanceBotAPI.escalate(ticketId || activeTicketId || 'maint-101');
-      showToast('Ticket escalated to Nestora Senior Operations Lead! Landlord alerted via SMS.', 'warning');
+      showToast('Ticket escalated to Nestera Senior Operations Lead! Landlord alerted via SMS.', 'warning');
       setMessages(prev => [
         ...prev,
         {
@@ -156,7 +156,7 @@ export default function MaintenanceChatWidget() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#25D366' }} />
               <div>
-                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>Nestora Relay Bot</h4>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>Nestera Relay Bot</h4>
                 <div style={{ fontSize: '0.72rem', opacity: 0.85 }}>WhatsApp &amp; In-App Sync Active</div>
               </div>
             </div>
@@ -210,7 +210,7 @@ export default function MaintenanceChatWidget() {
             ))}
             {loading && (
               <div style={{ alignSelf: 'flex-start', background: 'white', padding: '8px 12px', borderRadius: '12px', fontSize: '0.8rem', color: 'var(--slate-500)' }}>
-                Nestora Bot is matching technician...
+                Nestera Bot is matching technician...
               </div>
             )}
             <div ref={messagesEndRef} />

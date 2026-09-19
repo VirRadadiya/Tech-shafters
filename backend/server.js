@@ -45,7 +45,7 @@ app.use('/api/reviews', require('./routes/reviewRoutes'));
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'online',
-    platform: 'Nestora PropTech REST API',
+    platform: 'Nestera PropTech REST API',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development'
   });
@@ -54,7 +54,7 @@ app.get('/api/health', (req, res) => {
 // Root welcome route
 app.get('/', (req, res) => {
   res.json({
-    message: 'Welcome to the Nestora PropTech API backend server!',
+    message: 'Welcome to the Nestera PropTech API backend server!',
     documentation: '/api/health',
     endpoints: [
       '/api/properties',
@@ -85,6 +85,6 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Nestora PropTech API Server running on port ${PORT}`);
+  console.log(`🚀 Nestera PropTech API Server running on port ${PORT}`);
   console.log(`📡 Ready for Next.js frontend requests from ${process.env.CLIENT_URL || 'http://localhost:3000'}`);
 });

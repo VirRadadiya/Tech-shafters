@@ -9,7 +9,9 @@ export default function MatchCelebrationModal() {
     matchedRoommate,
     isMatchCelebrationOpen,
     setIsMatchCelebrationOpen,
-    showToast
+    showToast,
+    currentUser,
+    getProfileAvatar
   } = useApp();
 
   if (!isMatchCelebrationOpen || !matchedRoommate) return null;
@@ -44,8 +46,8 @@ export default function MatchCelebrationModal() {
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', margin: '28px 0' }}>
           <div style={{ position: 'relative' }}>
             <img
-              src={user.avatar}
-              alt={user.name}
+              src={getProfileAvatar(currentUser)}
+              alt={currentUser?.fullName || user.name}
               style={{ width: '84px', height: '84px', borderRadius: '50%', objectFit: 'cover', border: '4px solid var(--primary)' }}
             />
             <div style={{ fontSize: '0.75rem', fontWeight: 700, marginTop: '4px' }}>You</div>
@@ -55,7 +57,7 @@ export default function MatchCelebrationModal() {
 
           <div style={{ position: 'relative' }}>
             <img
-              src={partner.avatar}
+              src={getProfileAvatar(partner)}
               alt={partner.name}
               style={{ width: '84px', height: '84px', borderRadius: '50%', objectFit: 'cover', border: '4px solid var(--accent-emerald)' }}
             />

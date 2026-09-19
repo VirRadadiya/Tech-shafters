@@ -70,7 +70,7 @@ exports.requestClarification = async (req, res) => {
     const { clauseId, question } = req.body;
     return res.json({
       success: true,
-      message: 'Your clarification question has been submitted to Nestora Legal Assist. A plain-English legal response will be provided within 4 hours.',
+      message: 'Your clarification question has been submitted to Nestera Legal Assist. A plain-English legal response will be provided within 4 hours.',
       details: { clauseId, question }
     });
   } catch (error) {

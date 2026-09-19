@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
@@ -12,6 +12,8 @@ export default function AuthModal() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [gender, setGender] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [termsConsent, setTermsConsent] = useState(false);
   const [rememberSession, setRememberSession] = useState(true);
@@ -19,11 +21,16 @@ export default function AuthModal() {
 
   if (!isAuthModalOpen) return null;
 
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isDobValid = dateOfBirth && dateOfBirth <= todayStr;
+
   const isSignupValid =
     fullName.trim().length >= 2 &&
     email.includes('@') &&
     password.length >= 6 &&
     password === confirmPassword &&
+    Boolean(gender) &&
+    Boolean(isDobValid) &&
     termsConsent;
 
   const isLoginValid = email.includes('@') && password.length >= 6;
@@ -34,12 +41,26 @@ export default function AuthModal() {
 
     try {
       if (authMode === 'signup') {
+        if (!gender) {
+          showToast('Please select your gender', 'error');
+          setLoading(false);
+          return;
+        }
+        if (!dateOfBirth || dateOfBirth > todayStr) {
+          showToast('Please select a valid Date of Birth (cannot be in the future)', 'error');
+          setLoading(false);
+          return;
+        }
+
         const res = await AuthAPI.register({
           fullName,
           email,
           phone,
           password,
-          role: selectedPreRole || 'tenant'
+          role: selectedPreRole || 'tenant',
+          gender,
+          dateOfBirth,
+          date_of_birth: dateOfBirth
         });
 
         if (res && res.success) {
@@ -86,7 +107,7 @@ export default function AuthModal() {
         {authMode === 'signup' ? (
           <div>
             <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--slate-900)', marginBottom: '6px' }}>
-              Create your Nestora account
+              Create your Nestera account
             </h2>
             <p style={{ color: 'var(--slate-500)', fontSize: '0.9rem', marginBottom: '20px' }}>
               Find your space. Find your people. Live smarter.
@@ -161,6 +182,44 @@ export default function AuthModal() {
                 />
               </div>
 
+              {/* Gender (Signup only) */}
+              <div>
+                <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--slate-700)', display: 'block', marginBottom: '4px' }}>
+                  Gender
+                </label>
+                <select
+                  required
+                  value={gender}
+                  onChange={e => setGender(e.target.value)}
+                  className="search-input"
+                  style={{ width: '100%', padding: '10px 14px' }}
+                >
+                  <option value="" disabled>Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+              </div>
+
+              {/* Date of Birth (Signup only) */}
+              <div>
+                <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--slate-700)', display: 'block', marginBottom: '4px' }}>
+                  Date of Birth
+                </label>
+                <input
+                  type="date"
+                  required
+                  max={todayStr}
+                  value={dateOfBirth}
+                  onChange={e => setDateOfBirth(e.target.value)}
+                  className="search-input"
+                  style={{ width: '100%', padding: '10px 14px' }}
+                />
+                <span style={{ fontSize: '0.72rem', color: 'var(--slate-500)', marginTop: '2px', display: 'block' }}>
+                  Must be in the past. Used for age-based roommate compatibility.
+                </span>
+              </div>
+
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                   <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--slate-700)' }}>Password</label>
@@ -206,7 +265,7 @@ export default function AuthModal() {
                   style={{ marginTop: '3px' }}
                 />
                 <label htmlFor="termsConsent" style={{ fontSize: '0.82rem', color: 'var(--slate-600)', lineHeight: 1.4 }}>
-                  I agree to Nestora&apos;s <strong>Terms of Service</strong> and <strong>Privacy Policy</strong> with zero brokerage guarantee.
+                  I agree to Nestera&apos;s <strong>Terms of Service</strong> and <strong>Privacy Policy</strong> with zero brokerage guarantee.
                 </label>
               </div>
 
@@ -242,7 +301,7 @@ export default function AuthModal() {
               Welcome back 👋
             </h2>
             <p style={{ color: 'var(--slate-500)', fontSize: '0.9rem', marginBottom: '20px' }}>
-              Sign in to continue to your Nestora account.
+              Sign in to continue to your Nestera account.
             </p>
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

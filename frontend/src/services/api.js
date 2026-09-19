@@ -1,4 +1,4 @@
-import { MOCK_DATA } from './mockData';
+﻿import { MOCK_DATA } from './mockData';
 import { supabase } from './supabaseClient';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
@@ -180,7 +180,7 @@ export const PropertyAPI = {
       body: JSON.stringify(payload)
     }, () => ({
       success: true,
-      message: 'Application & digital KYC submitted with 0% brokerage guarantee. Nestora agreement is being generated.'
+      message: 'Application & digital KYC submitted with 0% brokerage guarantee. Nestera agreement is being generated.'
     }));
   },
 
@@ -190,7 +190,7 @@ export const PropertyAPI = {
       body: JSON.stringify(payload)
     }, () => ({
       success: true,
-      message: 'Direct inquiry dispatched to verified landlord via WhatsApp & Nestora chat.'
+      message: 'Direct inquiry dispatched to verified landlord via WhatsApp & Nestera chat.'
     }));
   }
 };
@@ -226,6 +226,46 @@ export const RoommateAPI = {
       matched: action === 'match',
       message: action === 'match' ? `It's a Match!` : 'Skipped profile'
     }));
+  },
+
+  getPreferences: async (userId = 'demo-user-1') => {
+    return request(`/roommates/preferences?userId=${encodeURIComponent(userId)}`, { method: 'GET' }, async () => {
+      if (supabase) {
+        const { data, error } = await supabase
+          .from('roommate_preferences')
+          .select('*')
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (data && !error) {
+          return { success: true, data, source: 'supabase' };
+        }
+      }
+      return { success: true, data: null, source: 'local' };
+    });
+  },
+
+  savePreferences: async (payload) => {
+    return request(`/roommates/preferences`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }, async () => {
+      if (supabase && payload) {
+        const userId = payload.user_id || payload.userId || 'demo-user-1';
+        const { data, error } = await supabase
+          .from('roommate_preferences')
+          .upsert([{
+            user_id: userId,
+            ...payload,
+            updated_at: new Date().toISOString()
+          }], { onConflict: 'user_id' })
+          .select()
+          .single();
+        if (!error && data) {
+          return { success: true, data, message: 'Preferences saved to Supabase', source: 'supabase' };
+        }
+      }
+      return { success: true, data: payload, message: 'Preferences saved successfully', source: 'local' };
+    });
   }
 };
 
@@ -368,7 +408,7 @@ export const TicketAPI = {
           { label: 'In Progress', time: 'Pending', done: false },
           { label: 'Resolved', time: 'Pending', done: false }
         ],
-        description: payload.description || 'Issue reported via Nestora Tenant Hub.',
+        description: payload.description || 'Issue reported via Nestera Tenant Hub.',
         location: payload.location || 'Master Bedroom Ensuite',
         images: []
       };
@@ -596,10 +636,44 @@ export const AgreementAPI = {
       body: JSON.stringify(payload)
     }, () => ({
       success: true,
-      message: 'Your question has been sent to Nestora Legal Assist. A response will arrive within 4 hours.'
+      message: 'Your question has been sent to Nestera Legal Assist. A response will arrive within 4 hours.'
     }));
   }
 };
+
+// Avatar helper for frontend API
+function getApiDefaultAvatar(gender) {
+  const g = (gender || '').toString().toLowerCase().trim();
+  if (g === 'female') return '/avatars/avatar-female.png';
+  if (g === 'male') return '/avatar.png';
+  return '/avatars/avatar-neutral.svg';
+}
+
+function isApiCustomAvatar(avatar) {
+  if (!avatar || typeof avatar !== 'string') return false;
+  const a = avatar.toLowerCase().trim();
+  if (!a) return false;
+  const defaultPlaceholders = [
+    'pngtree',
+    'avatar-male',
+    'avatar-female',
+    'avatar-neutral',
+    '/avatar.png',
+    'avatar.png',
+    'photo-1507003211169-0a1dd7228f2d',
+    'photo-1534528741775-53994a69daeb'
+  ];
+  return !defaultPlaceholders.some(keyword => a.includes(keyword));
+}
+
+function getApiProfileAvatar(profile) {
+  if (!profile) return getApiDefaultAvatar(null);
+  const custom = profile.avatar_url || profile.avatarUrl || profile.avatar;
+  if (isApiCustomAvatar(custom)) {
+    return custom;
+  }
+  return getApiDefaultAvatar(profile.gender);
+}
 
 // Permanent Role Auth API
 export const AuthAPI = {
@@ -608,13 +682,18 @@ export const AuthAPI = {
       method: 'POST',
       body: JSON.stringify(payload)
     }, async () => {
+      const cleanGender = payload.gender || null;
+      const cleanDob = payload.dateOfBirth || payload.date_of_birth || null;
       const newUser = {
         id: `usr-${Date.now()}`,
         fullName: payload.fullName,
         email: payload.email,
         phone: payload.phone || '+91 98250 12345',
         role: payload.role, // permanent
-        avatarUrl: payload.role === 'owner' ? '/avatars/rajesh.jpg' : '/avatar.png',
+        gender: cleanGender,
+        dateOfBirth: cleanDob,
+        date_of_birth: cleanDob,
+        avatarUrl: getApiDefaultAvatar(cleanGender),
         emailVerified: true
       };
       if (supabase) {
@@ -624,6 +703,8 @@ export const AuthAPI = {
           email: newUser.email,
           phone: newUser.phone,
           role: newUser.role,
+          gender: cleanGender,
+          date_of_birth: cleanDob,
           avatar_url: newUser.avatarUrl,
           email_verified: true
         }]);
@@ -653,7 +734,10 @@ export const AuthAPI = {
               email: data.email,
               phone: data.phone,
               role: data.role,
-              avatarUrl: data.avatar_url,
+              gender: data.gender || null,
+              dateOfBirth: data.date_of_birth || null,
+              date_of_birth: data.date_of_birth || null,
+              avatarUrl: getApiProfileAvatar(data),
               emailVerified: data.email_verified
             },
             token: `nestora-${data.id}`
@@ -669,7 +753,10 @@ export const AuthAPI = {
           email: email || 'resident@example.com',
           phone: '+91 98250 12345',
           role: 'tenant',
-          avatarUrl: '/avatar.png',
+          gender: null,
+          dateOfBirth: null,
+          date_of_birth: null,
+          avatarUrl: getApiDefaultAvatar(null),
           emailVerified: true
         },
         token: 'nestora-demo-token'
@@ -688,9 +775,49 @@ export const AuthAPI = {
         fullName: 'Resident',
         email: 'resident@example.com',
         role: 'tenant',
-        avatarUrl: '/avatar.png'
+        gender: null,
+        dateOfBirth: null,
+        avatarUrl: getApiDefaultAvatar(null)
       }
     }));
+  },
+
+  updateProfile: async (payload) => {
+    return request(`/auth/profile`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload)
+    }, async () => {
+      const cleanDob = payload.dateOfBirth || payload.date_of_birth;
+      if (supabase && (payload.userId || payload.email)) {
+        let sb = supabase.from('profiles').update({
+          ...(payload.gender !== undefined && { gender: payload.gender }),
+          ...(cleanDob !== undefined && { date_of_birth: cleanDob }),
+          ...(payload.fullName !== undefined && { full_name: payload.fullName }),
+          ...(payload.phone !== undefined && { phone: payload.phone })
+        });
+        if (payload.userId) sb = sb.eq('id', payload.userId);
+        else if (payload.email) sb = sb.eq('email', payload.email.toLowerCase().trim());
+        const { data } = await sb.select().maybeSingle();
+        if (data) {
+          return {
+            success: true,
+            user: {
+              id: data.id,
+              fullName: data.full_name,
+              email: data.email,
+              phone: data.phone,
+              role: data.role,
+              gender: data.gender || null,
+              dateOfBirth: data.date_of_birth || null,
+              date_of_birth: data.date_of_birth || null,
+              avatarUrl: data.avatar_url,
+              emailVerified: data.email_verified
+            }
+          };
+        }
+      }
+      return { success: true, user: payload };
+    });
   }
 };
 
@@ -924,7 +1051,7 @@ export const MaintenanceBotAPI = {
         {
           id: 'msg-1',
           senderType: 'bot',
-          message: 'Hello! I am Nestora Relay Bot. Type any maintenance issue (e.g. "geyser leaking", "ac stopped") to automatically dispatch a verified technician.'
+          message: 'Hello! I am Nestera Relay Bot. Type any maintenance issue (e.g. "geyser leaking", "ac stopped") to automatically dispatch a verified technician.'
         }
       ]
     }));
@@ -936,7 +1063,7 @@ export const MaintenanceBotAPI = {
       body: JSON.stringify({ ticketId, reason: 'No response from technician within SLA threshold' })
     }, () => ({
       success: true,
-      message: `Ticket #${ticketId} escalated to Nestora Senior Operations Lead! Priority: CRITICAL.`
+      message: `Ticket #${ticketId} escalated to Nestera Senior Operations Lead! Priority: CRITICAL.`
     }));
   }
 };
@@ -957,7 +1084,7 @@ export const RoommateContractAPI = {
             propertyName: 'Sunrise Harmony Heights (Flat 402)',
             roommates: ['Current Resident (You)', 'Aarav Sharma'],
             rentSplit: { 'Current Resident (You)': 8250, 'Aarav Sharma': 8250 },
-            utilities: 'Equal 50/50 split via Nestora Tenant Hub',
+            utilities: 'Equal 50/50 split via Nestera Tenant Hub',
             choresSchedule: 'Alternating weekly cleaning of kitchen & balcony',
             quietHours: '11:00 PM – 7:00 AM on weekdays',
             guestPolicy: 'Overnight guests permitted with 24-hr advance WhatsApp notice',
@@ -980,8 +1107,8 @@ export const RoommateContractAPI = {
       const newContract = {
         id: `ct-${Date.now()}`,
         property_id: payload.propertyId || 'prop-1',
-        property_name: payload.propertyName || 'Nestora Shared Space',
-        propertyName: payload.propertyName || 'Nestora Shared Space',
+        property_name: payload.propertyName || 'Nestera Shared Space',
+        propertyName: payload.propertyName || 'Nestera Shared Space',
         roommates: payload.roommates || ['Current Resident', 'Aarav Sharma'],
         rent_split: payload.rentSplit || { 'Current Resident': '50%', 'Aarav Sharma': '50%' },
         rentSplit: payload.rentSplit || { 'Current Resident': '50%', 'Aarav Sharma': '50%' },
@@ -1111,7 +1238,7 @@ export const NeighborhoodAPI = {
             tenantName: 'Aman Sharma (Nirma B.Tech)',
             ratings: { accuracy: 5, cleanliness: 5, owner: 5, commute: 5, safety: 5, overall: 5 },
             comment: 'Lived here for 6 months during my campus internship. Zero brokerage, accurate utility bills, and Rajesh uncle repaired the geyser on the same day!',
-            ownerResponse: 'Thank you Aman! Always welcome back at Nestora spaces.'
+            ownerResponse: 'Thank you Aman! Always welcome back at Nestera spaces.'
           }
         ]
       };

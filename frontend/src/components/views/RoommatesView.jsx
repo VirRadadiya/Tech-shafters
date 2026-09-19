@@ -3,29 +3,41 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { RoommateAPI } from '../../services/api';
+import { calculateCompatibility } from '../../services/compatibilityEngine';
+import RoommateQuizModal from '../modals/RoommateQuizModal';
 
-function getStableRoommateMatch(r) {
+function getStableFallbackMatch(r) {
   if (!r) return 85;
   const raw = typeof r.compatibility === 'number' ? r.compatibility : parseInt(r.compatibility, 10);
   if (!isNaN(raw) && raw >= 61 && raw <= 98) {
     return raw;
   }
-  // Deterministic hash based on ID and Name (no Math.random on render)
   const str = String(r.id || '') + String(r.name || '');
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) - hash) + str.charCodeAt(i);
     hash |= 0;
   }
-  return 61 + (Math.abs(hash) % 38); // Strictly 61% to 98%
+  return 61 + (Math.abs(hash) % 38);
 }
 
 export default function RoommatesView() {
-  const { openRoommateProfile, triggerMatchCelebration, showToast } = useApp();
+  const { openRoommateProfile, triggerMatchCelebration, showToast, getProfileAvatar } = useApp();
   const [roommates, setRoommates] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [viewMode, setViewMode] = useState('swiper'); // 'swiper' | 'grid'
   const [swipeFeedback, setSwipeFeedback] = useState(null); // 'match' | 'pass'
+  const [isQuizOpen, setIsQuizOpen] = useState(false);
+  const [userPreferences, setUserPreferences] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const p = localStorage.getItem('nestera_user_roommate_preferences');
+      return p ? JSON.parse(p) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
   const [acceptedRoommates, setAcceptedRoommates] = useState(() => {
     if (typeof window === 'undefined') return [];
     try {
@@ -42,11 +54,43 @@ export default function RoommatesView() {
         setRoommates(res.data);
       }
     });
+
+    // Try fetching preferences from backend
+    fetch('http://localhost:5000/api/roommates/preferences')
+      .then(res => res.json())
+      .then(body => {
+        if (body && body.data) {
+          setUserPreferences(body.data);
+          try {
+            localStorage.setItem('nestera_user_roommate_preferences', JSON.stringify(body.data));
+          } catch (e) {}
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  const getScoreData = (mate) => {
+    if (!mate) return { score: 85, isPersonalized: false, matchedFactors: [], differences: [] };
+    if (userPreferences && userPreferences.quiz_completed) {
+      const calc = calculateCompatibility(userPreferences, mate);
+      return {
+        score: calc.percentage,
+        isPersonalized: true,
+        matchedFactors: calc.matchedFactors,
+        differences: calc.differences
+      };
+    }
+    return {
+      score: getStableFallbackMatch(mate),
+      isPersonalized: false,
+      matchedFactors: mate.whyCompatible || [],
+      differences: []
+    };
+  };
 
   const handleConnect = (mate) => {
     if (!mate) return;
-    const score = getStableRoommateMatch(mate);
+    const { score } = getScoreData(mate);
     if (!acceptedRoommates.includes(mate.id)) {
       const next = [...acceptedRoommates, mate.id];
       setAcceptedRoommates(next);
@@ -85,13 +129,14 @@ export default function RoommatesView() {
 
   const currentRoommate = roommates[currentIndex];
   const isCurrentAccepted = currentRoommate && acceptedRoommates.includes(currentRoommate.id);
-  const currentScore = currentRoommate ? getStableRoommateMatch(currentRoommate) : 85;
+  const currentScoreData = currentRoommate ? getScoreData(currentRoommate) : { score: 85, isPersonalized: false };
+  const hasCompletedQuiz = Boolean(userPreferences && userPreferences.quiz_completed);
 
   return (
     <section className="view-panel active" id="view-roommates">
       <div className="container" style={{ padding: '32px 24px 80px' }}>
         {/* Header & Mode Switcher */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <span className="badge badge-primary" style={{ marginBottom: '8px' }}>AI COMPATIBILITY MATCHING</span>
             <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>
@@ -118,6 +163,36 @@ export default function RoommatesView() {
           </div>
         </div>
 
+        {/* Compatibility Quiz CTA Hero Banner */}
+        <div className="quiz-hero-card" style={{ marginBottom: '32px' }}>
+          <div className="quiz-hero-badge">
+            <span className={`quiz-pulse-dot ${hasCompletedQuiz ? 'dot-completed' : ''}`} />
+            <span>{hasCompletedQuiz ? '✓ Preferences Active' : 'Quiz Not Completed'}</span>
+          </div>
+          <div className="quiz-hero-body">
+            <div className="quiz-hero-text">
+              <h3 className="quiz-hero-title">
+                {hasCompletedQuiz ? 'Retake Compatibility Quiz' : 'Take Compatibility Quiz'}
+              </h3>
+              <p className="quiz-hero-sub">
+                {hasCompletedQuiz
+                  ? 'Your answers are calculating personalized match scores across all roommate profiles.'
+                  : 'Answer a few questions about your lifestyle and preferences to find roommates who match you better.'}
+              </p>
+              {hasCompletedQuiz && (
+                <div className="quiz-hero-uptodate">
+                  <span>✓ Your preferences are up to date</span>
+                </div>
+              )}
+            </div>
+            <div className="quiz-hero-action">
+              <button className="btn btn-primary btn-quiz-cta" onClick={() => setIsQuizOpen(true)}>
+                {hasCompletedQuiz ? 'Retake Quiz ↻' : 'Take the Quiz →'}
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* SWIPER MODE */}
         {viewMode === 'swiper' && (
           <div className="swiper-container-wrap">
@@ -126,13 +201,14 @@ export default function RoommatesView() {
                 {/* Visual Image & Overlays */}
                 <div className="roommate-swipe-img-wrap">
                   <img
-                    src={currentRoommate.avatar}
+                    src={getProfileAvatar ? getProfileAvatar(currentRoommate) : currentRoommate.avatar}
                     alt={currentRoommate.name}
                     className="roommate-swipe-img"
                   />
-                  <div className="swipe-compat-pill">
-                    ⚡ {currentScore}% Compatibility
+                  <div className={`swipe-compat-pill ${!hasCompletedQuiz ? 'compat-badge-demo' : ''}`}>
+                    ⚡ {currentScoreData.score}% {hasCompletedQuiz ? 'Compatibility' : '(Demo)'}
                   </div>
+
 
                   {isCurrentAccepted && (
                     <div className="badge badge-emerald" style={{ position: 'absolute', bottom: '14px', left: '14px', zIndex: 10, fontSize: '0.85rem' }}>
@@ -186,7 +262,13 @@ export default function RoommatesView() {
                     </button>
                     <button
                       className="swipe-action-btn btn-info"
-                      onClick={() => openRoommateProfile({ ...currentRoommate, compatibility: currentScore })}
+                      onClick={() => openRoommateProfile({
+                        ...currentRoommate,
+                        compatibility: currentScoreData.score,
+                        matchedFactors: currentScoreData.matchedFactors,
+                        differences: currentScoreData.differences,
+                        isPersonalized: currentScoreData.isPersonalized
+                      })}
                       title="View full profile"
                     >
                       ℹ
@@ -224,15 +306,15 @@ export default function RoommatesView() {
         {viewMode === 'grid' && (
           <div className="roommates-grid">
             {roommates.map(r => {
-              const score = getStableRoommateMatch(r);
+              const scoreData = getScoreData(r);
               const isAccepted = acceptedRoommates.includes(r.id);
 
               return (
                 <div key={r.id} className="roommate-grid-card">
                   <div className="grid-card-img-wrap">
-                    <img src={r.avatar} alt={r.name} className="grid-card-img" />
-                    <span className="swipe-compat-pill" style={{ top: '12px', right: '12px', bottom: 'auto' }}>
-                      ⚡ {score}% Match
+                    <img src={getProfileAvatar ? getProfileAvatar(r) : r.avatar} alt={r.name} className="grid-card-img" />
+                    <span className={`swipe-compat-pill ${!scoreData.isPersonalized ? 'compat-badge-demo' : ''}`} style={{ top: '12px', right: '12px', bottom: 'auto' }}>
+                      ⚡ {scoreData.score}% {scoreData.isPersonalized ? 'Match' : '(Demo)'}
                     </span>
                     {isAccepted && (
                       <span className="badge badge-emerald" style={{ position: 'absolute', bottom: '10px', left: '12px', zIndex: 5 }}>
@@ -260,7 +342,13 @@ export default function RoommatesView() {
                       <button
                         className="btn btn-sm btn-outline"
                         style={{ flex: 1 }}
-                        onClick={() => openRoommateProfile({ ...r, compatibility: score })}
+                        onClick={() => openRoommateProfile({
+                          ...r,
+                          compatibility: scoreData.score,
+                          matchedFactors: scoreData.matchedFactors,
+                          differences: scoreData.differences,
+                          isPersonalized: scoreData.isPersonalized
+                        })}
                       >
                         View Profile
                       </button>
@@ -289,8 +377,22 @@ export default function RoommatesView() {
             })}
           </div>
         )}
+
+        {/* Roommate Compatibility Quiz Modal */}
+        <RoommateQuizModal
+          isOpen={isQuizOpen}
+          onClose={() => setIsQuizOpen(false)}
+          currentPreferences={userPreferences}
+          onCompleted={(newPrefs) => {
+            setUserPreferences(newPrefs);
+            try {
+              localStorage.setItem('nestera_user_roommate_preferences', JSON.stringify(newPrefs));
+            } catch (e) {}
+          }}
+        />
       </div>
     </section>
   );
 }
+
 

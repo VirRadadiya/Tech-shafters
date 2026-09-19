@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { ValuationAPI } from '../../services/api';
@@ -182,7 +182,7 @@ export default function ValuationView() {
           <div className="valuation-results-col">
             <div className="valuation-output-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span className="badge badge-verified">✓ Nestora Fair Index</span>
+                <span className="badge badge-verified">✓ Nestera Fair Index</span>
                 <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Updated Today</span>
               </div>
 

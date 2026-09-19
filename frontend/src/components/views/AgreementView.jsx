@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { AgreementAPI } from '../../services/api';
@@ -123,7 +123,7 @@ export default function AgreementView() {
 
                 {/* Plain English Translation */}
                 <div className="clause-plain-col">
-                  <div className="clause-col-header plain">✨ Nestora Plain-English Guarantee</div>
+                  <div className="clause-col-header plain">✨ Nestera Plain-English Guarantee</div>
                   <p className="clause-text plain-text">
                     {clause.plainEnglish}
                   </p>

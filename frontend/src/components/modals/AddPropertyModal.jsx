@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
@@ -85,7 +85,7 @@ export default function AddPropertyModal() {
           </div>
 
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
-            🔒 All listings undergo 24-hour physical verification by the Nestora on-ground team to ensure zero misrepresentation.
+            🔒 All listings undergo 24-hour physical verification by the Nestera on-ground team to ensure zero misrepresentation.
           </p>
 
           <button
@@ -94,7 +94,7 @@ export default function AddPropertyModal() {
             style={{ width: '100%' }}
             disabled={submitting}
           >
-            {submitting ? 'Listing...' : 'List Property with Nestora Protection'}
+            {submitting ? 'Listing...' : 'List Property with Nestera Protection'}
           </button>
         </form>
       </div>
